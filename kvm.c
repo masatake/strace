@@ -33,13 +33,64 @@
 #ifdef HAVE_LINUX_KVM_H
 #include <linux/kvm.h>
 
+static int
+kvm_ioctl_irq_line_status(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_irq_level *irq_level;
+	struct kvm_irq_level irq_level_rec;
+	struct kvm_irq_level *entering_irq_level;
+
+	if (entering(tcp)) {
+		irq_level = malloc(sizeof(*irq_level));
+		if (!irq_level)
+			return 0;
+	} else {
+		irq_level = &irq_level_rec;
+	}
+
+	if (umoven(tcp, arg, sizeof(*irq_level), irq_level) < 0) {
+		if (entering(tcp))
+			free(irq_level);
+		return 0;
+	}
+	if (entering(tcp)) {
+		set_tcb_priv_data(tcp, irq_level, free);
+		return 0;
+	}
+
+	entering_irq_level = get_tcb_priv_data(tcp);
+
+	if (entering_irq_level) {
+		if (syserror(tcp))
+			tprintf(", {{irq=%u}, level=%u}",
+				entering_irq_level->irq,
+				irq_level->level);
+		else
+			tprintf(", {{irq=%u, status=%d}, level=%u}",
+				entering_irq_level->irq, irq_level->status,
+				irq_level->level);
+	} else {
+		if (syserror(tcp))
+			tprintf(", {{irq=%u}, level=%u}",
+				irq_level->irq,
+				irq_level->level);
+		else
+			tprintf(", {{irq=???, status=%d}, level=%u}",
+				irq_level->status, irq_level->level);
+	}
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
 	switch (code) {
 	case KVM_RUN:
-		/* Fall through; Generic ioctl decoder is enough for
+		/* Generic ioctl decoder is enough for
 		   KVM_RUN because it takes no argument. */
+		return RVAL_DECODED;
+	case KVM_IRQ_LINE_STATUS:
+		return kvm_ioctl_irq_line_status(tcp, arg);
 	default:
 		return RVAL_DECODED;
 	}
