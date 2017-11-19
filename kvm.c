@@ -32,6 +32,7 @@
 
 #ifdef HAVE_LINUX_KVM_H
 #include <linux/kvm.h>
+#include "print_fields.h"
 
 static int
 kvm_ioctl_irq_line_status(struct tcb *const tcp, const kernel_ulong_t arg)
@@ -95,6 +96,33 @@ kvm_ioctl_get_dirty_log(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_mem_flags.h"
+static int
+kvm_ioctl_set_user_memory_region(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_userspace_memory_region u_memory_region;
+
+	if (entering(tcp))
+		return 0;
+
+	if (umoven(tcp, arg, sizeof(u_memory_region), &u_memory_region) < 0)
+		return RVAL_DECODED;
+
+	PRINT_FIELD_U(", {slot=%u", u_memory_region, slot);
+
+	tprints(", flags=");
+	if (!u_memory_region.flags)
+		tprints("0");
+	else
+		printxval(kvm_mem_flags, u_memory_region.flags, "KVM_MEM_???");
+
+	PRINT_FIELD_X(", ", u_memory_region, guest_phys_addr);
+	PRINT_FIELD_U(", ", u_memory_region, memory_size);
+	PRINT_FIELD_X(", ", u_memory_region, userspace_addr);
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -107,6 +135,8 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 		return kvm_ioctl_irq_line_status(tcp, arg);
 	case KVM_GET_DIRTY_LOG:
 		return kvm_ioctl_get_dirty_log(tcp, arg);
+	case KVM_SET_USER_MEMORY_REGION:
+		return kvm_ioctl_set_user_memory_region(tcp, arg);
 	default:
 		return RVAL_DECODED;
 	}
