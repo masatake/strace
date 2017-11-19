@@ -164,6 +164,7 @@ strace_SOURCES =	\
 	kexec.c		\
 	keyctl.c	\
 	keyctl_kdf_params.h \
+	kvm.c \
 	ldt.c		\
 	link.c		\
 	linux/asm_stat.h \
