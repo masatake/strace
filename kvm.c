@@ -443,6 +443,24 @@ kvm_ioctl_decode_ioeventfd(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_mp_states.h"
+static int
+kvm_ioctl_decode_mp_state(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
+{
+	struct kvm_mp_state mp_state;
+
+	if (code == KVM_GET_MP_STATE && entering(tcp))
+		return 0;
+
+	if (umove(tcp, arg, &mp_state) < 0)
+		return RVAL_DECODED;
+
+	PRINT_FIELD_XVAL(", {", mp_state, mp_state, kvm_mp_states,
+			 "KVM_MP_STATE_???");
+	tprints("}");
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -494,6 +512,10 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_IOEVENTFD:
 		return kvm_ioctl_decode_ioeventfd(tcp, arg);
+
+	case KVM_SET_MP_STATE:
+	case KVM_GET_MP_STATE:
+		return kvm_ioctl_decode_mp_state(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
