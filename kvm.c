@@ -461,6 +461,43 @@ kvm_ioctl_decode_mp_state(struct tcb *const tcp, const unsigned int code, const 
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_vcpuevents.h"
+static int
+kvm_ioctl_decode_vcpu_events(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
+{
+	struct kvm_vcpu_events vcpu_events;
+
+	if (code == KVM_GET_VCPU_EVENTS && entering(tcp))
+		return 0;
+
+	if (umove(tcp, arg, &vcpu_events) < 0)
+		return RVAL_DECODED;
+
+
+	PRINT_FIELD_U(", {exception={", vcpu_events.exception, injected);
+	PRINT_FIELD_U(", ", vcpu_events.exception, nr);
+	PRINT_FIELD_U(", ", vcpu_events.exception, has_error_code);
+	PRINT_FIELD_U(", ", vcpu_events.exception, error_code);
+	tprints("}");
+
+	PRINT_FIELD_U(", interrupt={", vcpu_events.interrupt, injected);
+	PRINT_FIELD_U(", ", vcpu_events.interrupt, nr);
+	PRINT_FIELD_U(", ", vcpu_events.interrupt, soft);
+	PRINT_FIELD_U(", ", vcpu_events.interrupt, shadow);
+	tprints("}");
+
+	PRINT_FIELD_U(", ", vcpu_events, sipi_vector);
+	PRINT_FIELD_FLAGS(", ", vcpu_events, flags, kvm_vcpuevents, "KVM_VCPUEVENT_???");
+
+	PRINT_FIELD_U(", smi={", vcpu_events.smi, smm);
+	PRINT_FIELD_U(", ", vcpu_events.smi, pending);
+	PRINT_FIELD_U(", ", vcpu_events.smi, smm_inside_nmi);
+	PRINT_FIELD_U(", ", vcpu_events.smi, latched_init);
+	tprints("}}");
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -516,6 +553,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_SET_MP_STATE:
 	case KVM_GET_MP_STATE:
 		return kvm_ioctl_decode_mp_state(tcp, code, arg);
+	case KVM_GET_VCPU_EVENTS:
+	case KVM_SET_VCPU_EVENTS:
+		return kvm_ioctl_decode_vcpu_events(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
