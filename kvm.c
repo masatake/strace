@@ -408,6 +408,20 @@ kvm_ioctl_decode_irq_line_status(struct tcb *const tcp, const unsigned int code,
 	return RVAL_IOCTL_DECODED;
 }
 
+static int
+kvm_ioctl_decode_get_dirty_log(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_dirty_log dirty_log;
+
+	if (umove(tcp, arg, &dirty_log) < 0)
+		return RVAL_DECODED;
+
+	tprintf(", {slot=%d, dirty_bitmap=%p}",
+		dirty_log.slot, dirty_log.dirty_bitmap);
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -453,6 +467,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_IRQ_LINE:
 	case KVM_IRQ_LINE_STATUS:
 		return kvm_ioctl_decode_irq_line_status(tcp, code, arg);
+
+	case KVM_GET_DIRTY_LOG:
+		return kvm_ioctl_decode_get_dirty_log(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
