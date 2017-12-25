@@ -422,6 +422,27 @@ kvm_ioctl_decode_get_dirty_log(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_ioeventfd_flags.h"
+static int
+kvm_ioctl_decode_ioeventfd(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_ioeventfd ioeventfd;
+
+	if (umove(tcp, arg, &ioeventfd) < 0)
+		return RVAL_DECODED;
+
+	PRINT_FIELD_U(", {", ioeventfd, datamatch);
+	PRINT_FIELD_0X(", ", ioeventfd, addr);
+	PRINT_FIELD_U(", ", ioeventfd, len);
+	tprints(", fd=");
+	printfd(tcp, ioeventfd.fd);
+	PRINT_FIELD_FLAGS(", ", ioeventfd, flags, kvm_ioeventfd_flags,
+			  "KVM_IOEVENTFD_???");
+	tprints("}");
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -470,6 +491,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_GET_DIRTY_LOG:
 		return kvm_ioctl_decode_get_dirty_log(tcp, arg);
+
+	case KVM_IOEVENTFD:
+		return kvm_ioctl_decode_ioeventfd(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
