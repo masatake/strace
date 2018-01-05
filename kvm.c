@@ -521,6 +521,68 @@ kvm_ioctl_decode_vcpu_events(struct tcb *const tcp, const unsigned int code, con
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_irqchip.h"
+static int
+kvm_ioctl_decode_set_irqchip(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_irqchip irqchip;
+	int pin;
+
+	if (umove(tcp, arg, &irqchip) < 0)
+		return RVAL_DECODED;
+
+	PRINT_FIELD_XVAL(", {", irqchip, chip_id, kvm_irqchip, "KVM_IRQCHIP_???");
+	switch (irqchip.chip_id) {
+	case KVM_IRQCHIP_PIC_MASTER:
+	case KVM_IRQCHIP_PIC_SLAVE:
+		PRINT_FIELD_U(", pic={", irqchip.chip.pic, last_irr);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, irr);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, imr);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, isr);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, priority_add);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, irq_base);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, read_reg_select);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, poll);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, special_mask);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, init_state);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, auto_eoi);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, rotate_on_auto_eoi);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, special_fully_nested_mode);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, init4);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, elcr);
+		PRINT_FIELD_U(", ", irqchip.chip.pic, elcr_mask);
+		tprints("}");
+		break;
+	case KVM_IRQCHIP_IOAPIC:
+		PRINT_FIELD_0X(", ioapic={", irqchip.chip.ioapic, base_address);
+		PRINT_FIELD_U(", ", irqchip.chip.ioapic, ioregsel);
+		PRINT_FIELD_U(", ", irqchip.chip.ioapic, id);
+		PRINT_FIELD_U(", ", irqchip.chip.ioapic, irr);
+
+		tprints(", redirtbl={");
+		for (pin = 0; pin < KVM_IOAPIC_NUM_PINS; pin++)
+		{
+			if (pin)
+				tprints(", ");
+			tprintf("[%d]={", pin);
+			PRINT_FIELD_U("", irqchip.chip.ioapic.redirtbl[pin].fields, vector);
+			tprintf(", delivery_mode=%u", irqchip.chip.ioapic.redirtbl[pin].fields.delivery_mode);
+			tprintf(", dest_mode=%u", irqchip.chip.ioapic.redirtbl[pin].fields.dest_mode);
+			tprintf(", delivery_status=%u", irqchip.chip.ioapic.redirtbl[pin].fields.delivery_status);
+			tprintf(", polarity=%u", irqchip.chip.ioapic.redirtbl[pin].fields.polarity);
+			tprintf(", remote_irr=%u", irqchip.chip.ioapic.redirtbl[pin].fields.remote_irr);
+			tprintf(", mask=<%u", irqchip.chip.ioapic.redirtbl[pin].fields.mask);
+			PRINT_FIELD_U("", irqchip.chip.ioapic.redirtbl[pin].fields, dest_id);
+			tprintf("}");
+		}
+		tprints("}}");
+		break;
+	}
+
+	tprints("}");
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -581,6 +643,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_GET_VCPU_EVENTS:
 	case KVM_SET_VCPU_EVENTS:
 		return kvm_ioctl_decode_vcpu_events(tcp, code, arg);
+
+	case KVM_SET_IRQCHIP:
+		return kvm_ioctl_decode_set_irqchip(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_CREATE_IRQCHIP:
