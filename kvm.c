@@ -583,6 +583,95 @@ kvm_ioctl_decode_set_irqchip(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_msi.h"
+static int
+kvm_ioctl_decode_signal_msi(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_msi msi;
+
+	if (umove(tcp, arg, &msi) < 0)
+		return RVAL_DECODED;
+
+	PRINT_FIELD_X(", {", msi, address_lo);
+	PRINT_FIELD_X(", ", msi, address_hi);
+	PRINT_FIELD_X(", ", msi, data);
+	PRINT_FIELD_XVAL(", ", msi, flags, kvm_msi, "KVM_MSI_???");
+	PRINT_FIELD_U(", ", msi, devid);
+	tprints("}");
+
+	return RVAL_IOCTL_DECODED;
+}
+
+#include "xlat/kvm_irq_routing_type.h"
+static int
+kvm_ioctl_decode_set_gsi_routing(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_irq_routing routing;
+	uint32_t i;
+	int r = RVAL_IOCTL_DECODED;
+
+	if (umove(tcp, arg, &routing) < 0)
+		return r;
+
+	PRINT_FIELD_U(", {", routing, nr);
+	PRINT_FIELD_U(", ", routing, flags);
+
+	if (routing.nr)
+		tprints(", entries={");
+	for (i = 0; i < routing.nr; i++)
+	{
+		struct kvm_irq_routing_entry entry;
+		if (umove(tcp, arg + sizeof(routing) + (i * sizeof (entry)),
+			  &entry) < 0)
+		{
+			r = RVAL_DECODED;
+			break;
+		}
+
+		if (i)
+			tprints(", ");
+		tprintf("[%u]", i);
+		PRINT_FIELD_U("= {", entry, gsi);
+		PRINT_FIELD_XVAL(", ", entry, type, kvm_irq_routing_type, "KVM_IRQ_ROUTING_???");
+		PRINT_FIELD_U(", ", entry, flags);
+		if (entry.type == KVM_IRQ_ROUTING_IRQCHIP)
+		{
+			// entry.u.irqchip;
+			PRINT_FIELD_U(", irqchip = {", entry.u.irqchip, irqchip);
+			PRINT_FIELD_U(", ", entry.u.irqchip, pin);
+			tprints("}");
+		}
+		else if (entry.type == KVM_IRQ_ROUTING_MSI)
+		{
+			// entry.u.msi;
+			PRINT_FIELD_X(", msi = {", entry.u.msi, address_lo);
+			PRINT_FIELD_X(", ", entry.u.msi, address_hi);
+			PRINT_FIELD_X(", ", entry.u.msi, data);
+			tprints("}");
+		}
+		tprints("}");
+	}
+	if (routing.nr)
+		tprints("}");
+	tprints("}");
+
+	return r;
+}
+
+static int
+kvm_ioctl_decode_set_vapic_addr(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_vapic_addr va;
+
+	tprints(", ");
+	if (umove_or_printaddr(tcp, arg, &va))
+		return RVAL_IOCTL_DECODED;
+
+	PRINT_FIELD_0X(", {", va, vapic_addr);
+	tprints("}");
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -646,6 +735,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_SET_IRQCHIP:
 		return kvm_ioctl_decode_set_irqchip(tcp, arg);
+
+	case KVM_SIGNAL_MSI:
+		return kvm_ioctl_decode_signal_msi(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_CREATE_IRQCHIP:
