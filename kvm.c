@@ -631,20 +631,20 @@ kvm_ioctl_decode_set_gsi_routing(struct tcb *const tcp, const kernel_ulong_t arg
 		if (i)
 			tprints(", ");
 		tprintf("[%u]", i);
-		PRINT_FIELD_U("= {", entry, gsi);
+		PRINT_FIELD_U("={", entry, gsi);
 		PRINT_FIELD_XVAL(", ", entry, type, kvm_irq_routing_type, "KVM_IRQ_ROUTING_???");
 		PRINT_FIELD_U(", ", entry, flags);
 		if (entry.type == KVM_IRQ_ROUTING_IRQCHIP)
 		{
 			// entry.u.irqchip;
-			PRINT_FIELD_U(", irqchip = {", entry.u.irqchip, irqchip);
+			PRINT_FIELD_U(", irqchip={", entry.u.irqchip, irqchip);
 			PRINT_FIELD_U(", ", entry.u.irqchip, pin);
 			tprints("}");
 		}
 		else if (entry.type == KVM_IRQ_ROUTING_MSI)
 		{
 			// entry.u.msi;
-			PRINT_FIELD_X(", msi = {", entry.u.msi, address_lo);
+			PRINT_FIELD_X(", msi={", entry.u.msi, address_lo);
 			PRINT_FIELD_X(", ", entry.u.msi, address_hi);
 			PRINT_FIELD_X(", ", entry.u.msi, data);
 			tprints("}");
@@ -738,6 +738,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_SIGNAL_MSI:
 		return kvm_ioctl_decode_signal_msi(tcp, arg);
+
+	case KVM_SET_GSI_ROUTING:
+		return kvm_ioctl_decode_set_gsi_routing(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_CREATE_IRQCHIP:
