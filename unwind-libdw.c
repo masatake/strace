@@ -39,9 +39,16 @@
 #include "mmap_cache.h"
 #include <elfutils/libdwfl.h>
 
+struct libdw_ctx {
+	Dwfl *dwfl;
+};
+
+#define DWFL(ctx) ((struct libdw_ctx *)ctx)->dwfl
+
 static void *
 tcb_init(struct tcb *tcp)
 {
+	struct libdw_ctx *ctx;
 	static const Dwfl_Callbacks proc_callbacks = {
 		.find_elf = dwfl_linux_proc_find_elf,
 		.find_debuginfo = dwfl_standard_find_debuginfo
@@ -68,14 +75,16 @@ tcb_init(struct tcb *tcp)
 		return NULL;
 	}
 
-	return dwfl;
+	ctx = xmalloc (sizeof(*ctx));
+	ctx->dwfl = dwfl;
+	return ctx;
 }
 
 static void
 tcb_fin(struct tcb *tcp)
 {
-	if (tcp->unwind_ctx)
-		dwfl_end(tcp->unwind_ctx);
+	if (DWFL(tcp->unwind_ctx))
+		dwfl_end(DWFL(tcp->unwind_ctx));
 }
 
 struct frame_user_data {
@@ -131,7 +140,7 @@ tcb_walk(struct tcb *tcp,
 	 unwind_error_action_fn error_action,
 	 void *data)
 {
-	Dwfl *dwfl = tcp->unwind_ctx;
+	Dwfl *dwfl = DWFL(tcp->unwind_ctx);
 	if (!dwfl)
 		return;
 
@@ -152,7 +161,7 @@ tcb_walk(struct tcb *tcp,
 static void
 tcb_flush_cache(struct tcb *tcp)
 {
-	Dwfl *dwfl = tcp->unwind_ctx;
+	Dwfl *dwfl = DWFL(tcp->unwind_ctx);
 	if (!dwfl)
 		return;
 
