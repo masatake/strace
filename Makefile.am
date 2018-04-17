@@ -359,6 +359,21 @@ strace_CPPFLAGS += $(libdw_CPPFLAGS)
 strace_CFLAGS += $(libdw_CFLAGS)
 strace_LDFLAGS += $(libdw_LDFLAGS)
 strace_LDADD += $(libdw_LIBS)
+if HAVE_PYTHON
+strace_SOURCES += subunwind-python-common.c subunwind-python-common.h
+endif
+if HAVE_PYTHON2
+noinst_LIBRARIES += libstrace_subunwinder_python2.a
+libstrace_subunwinder_python2_a_SOURCES = subunwind-python2.c
+libstrace_subunwinder_python2_a_CFLAGS  = $(python2_CFLAGS)
+strace_LDADD += libstrace_subunwinder_python2.a libstrace.a
+endif
+if HAVE_PYTHON3
+noinst_LIBRARIES += libstrace_subunwinder_python3.a
+libstrace_subunwinder_python3_a_SOURCES = subunwind-python3.c
+libstrace_subunwinder_python3_a_CFLAGS  = $(python3_CFLAGS)
+strace_LDADD += libstrace_subunwinder_python3.a libstrace.a
+endif
 endif
 if USE_LIBUNWIND
 strace_SOURCES += unwind-libunwind.c

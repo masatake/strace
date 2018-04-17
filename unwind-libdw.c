@@ -37,13 +37,30 @@
 #include "defs.h"
 #include "unwind.h"
 #include "mmap_cache.h"
+#include "subunwind.h"
 #include <elfutils/libdwfl.h>
 
 struct libdw_ctx {
 	Dwfl *dwfl;
+	struct subunwind_context_t *subunwind_ctx;
 };
 
 #define DWFL(ctx) ((struct libdw_ctx *)ctx)->dwfl
+#define SUBU(ctx) ((struct libdw_ctx *)ctx)->subunwind_ctx
+
+static struct subunwind_context_t *subunwind_probe (Dwfl_Module *,
+						    const char *,
+						    const char*);
+static bool subunwind_walk (struct subunwind_context_t *,
+			    struct tcb *,
+			    Dwfl_Module *,
+			    const char *, 
+			    GElf_Sym,
+			    const char*,
+			    Dwarf_Addr,
+			    unwind_call_action_fn, unwind_error_action_fn, void*);
+static void subunwind_finish (struct subunwind_context_t *);
+
 
 static void *
 tcb_init(struct tcb *tcp)
@@ -77,14 +94,19 @@ tcb_init(struct tcb *tcp)
 
 	ctx = xmalloc (sizeof(*ctx));
 	ctx->dwfl = dwfl;
+	ctx->subunwind_ctx = NULL;
 	return ctx;
 }
 
 static void
 tcb_fin(struct tcb *tcp)
 {
-	if (DWFL(tcp->unwind_ctx))
-		dwfl_end(DWFL(tcp->unwind_ctx));
+	if (tcp->unwind_ctx) {
+		if (DWFL(tcp->unwind_ctx))
+			dwfl_end(DWFL(tcp->unwind_ctx));
+		if (SUBU(tcp->unwind_ctx))
+			subunwind_finish(SUBU(tcp->unwind_ctx));
+	}
 }
 
 struct frame_user_data {
@@ -92,6 +114,8 @@ struct frame_user_data {
 	unwind_error_action_fn error_action;
 	void *data;
 	int stack_depth;
+	struct tcb *tcp;	
+	bool subunwinded;
 };
 
 static int
@@ -100,6 +124,9 @@ frame_callback(Dwfl_Frame *state, void *arg)
 	struct frame_user_data *user_data = arg;
 	Dwarf_Addr pc;
 	bool isactivation;
+
+	if (user_data->subunwinded)
+		return DWARF_CB_ABORT;
 
 	if (!dwfl_frame_pc(state, &pc, &isactivation)) {
 		/* Propagate the error to the caller.  */
@@ -118,14 +145,31 @@ frame_callback(Dwfl_Frame *state, void *arg)
 		const char *symname = NULL;
 		GElf_Sym sym;
 		Dwarf_Addr true_offset = pc;
+		Dwarf_Addr bias;
 
 		modname = dwfl_module_info(mod, NULL, NULL, NULL, NULL,
 					   NULL, NULL, NULL);
 		symname = dwfl_module_addrinfo(mod, pc, &off, &sym,
-					       NULL, NULL, NULL);
+					       NULL, NULL, &bias);
 		dwfl_module_relocate_address(mod, &true_offset);
 		user_data->call_action(user_data->data, modname, symname,
 				       off, true_offset);
+		if (!SUBU(user_data->tcp->unwind_ctx))
+			SUBU(user_data->tcp->unwind_ctx) = subunwind_probe(mod,
+									   modname,
+									   symname);
+		if (SUBU(user_data->tcp->unwind_ctx))
+			user_data->subunwinded =
+				subunwind_walk(SUBU(user_data->tcp->unwind_ctx),
+					       user_data->tcp,
+					       mod,
+					       modname,
+					       sym,
+					       symname,
+					       bias,
+					       user_data->call_action,
+					       user_data->error_action,
+					       user_data->data);
 	}
 	/* Max number of frames to print reached? */
 	if (user_data->stack_depth-- == 0)
@@ -149,10 +193,12 @@ tcb_walk(struct tcb *tcp,
 		.error_action = error_action,
 		.data = data,
 		.stack_depth = 256,
+		.tcp = tcp,
+		.subunwinded = false,
 	};
 	int r = dwfl_getthread_frames(dwfl, tcp->pid, frame_callback,
 				      &user_data);
-	if (r)
+	if (r && !user_data.subunwinded)
 		error_action(data,
 			     r < 0 ? dwfl_errmsg(-1) : "too many stack frames",
 			     0);
@@ -186,3 +232,74 @@ const struct unwind_unwinder_t unwinder = {
 	.tcb_walk = tcb_walk,
 	.tcb_flush_cache = tcb_flush_cache,
 };
+
+struct subunwind_context_t *
+subunwind_dummy_probe (struct subunwind_unwinder_t *unwinder,
+		       Dwfl_Module *mod,
+		       const char *modname,
+		       const char *symname)
+{
+	return NULL;
+}
+
+struct subunwind_unwinder_t subunwind_dummy = {
+	.name = "dummy",
+	.probe = subunwind_dummy_probe,
+};
+#ifdef HAVE_PYTHON2
+extern struct subunwind_unwinder_t subunwind_python2;
+#endif
+
+#ifdef HAVE_PYTHON3
+extern struct subunwind_unwinder_t subunwind_python3;
+#endif
+
+struct subunwind_unwinder_t *subunwinders [] = {
+	&subunwind_dummy,
+#ifdef HAVE_PYTHON2
+	&subunwind_python2,
+#endif
+#ifdef HAVE_PYTHON3
+	&subunwind_python3,
+#endif
+};
+	
+static struct subunwind_context_t *
+subunwind_probe (Dwfl_Module *mod,
+		 const char *modname, const char*symname)
+{
+	struct subunwind_context_t *r = NULL;
+	
+	for (unsigned int i = 0; i < ARRAY_SIZE(subunwinders); i++) {
+		if (subunwinders[i]->probe) {
+			r = subunwinders[i]->probe (subunwinders[i],
+						    mod,
+						    modname, symname);
+			if (r)
+				return r;
+		}
+	}
+	return NULL;
+}
+
+static bool subunwind_walk (struct subunwind_context_t *ctx,
+			    struct tcb *tcp,
+			    Dwfl_Module *mod,
+			    const char *modname,
+			    GElf_Sym sym,
+			    const char *symname,
+			    Dwarf_Addr bias,
+			    unwind_call_action_fn call_action,
+			    unwind_error_action_fn error_action,
+			    void* action_data)
+{
+	return ctx->unwinder->walk (ctx, tcp, mod, modname, sym, symname,
+				    bias,
+				    call_action, error_action, action_data);
+}
+
+static void subunwind_finish (struct subunwind_context_t *ctx)
+{
+	return ctx->unwinder->finish(ctx);
+}
+

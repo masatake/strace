@@ -846,6 +846,29 @@ AC_CHECK_TOOL([READELF], [readelf])
 
 st_STACKTRACE
 
+have_python2=
+have_python3=
+AM_COND_IF([USE_LIBDW],[
+	PKG_CHECK_MODULES([python2], [python],  [have_python2=yes], [:])
+	PKG_CHECK_MODULES([python3], [python3], [have_python3=yes], [:])
+])
+AM_CONDITIONAL([HAVE_PYTHON2], [test "x$have_python2" != x])
+AM_CONDITIONAL([HAVE_PYTHON3], [test "x$have_python3" != x])
+AM_CONDITIONAL([HAVE_PYTHON],
+	[test "x$have_python2" != x || test "x$have_python3" != x])
+AM_COND_IF([HAVE_PYTHON2],
+	   [AC_DEFINE([HAVE_PYTHON2], [1],
+		      [Define to enable python2 level tracing support])
+	    AC_DEFINE_UNQUOTED([PYTHON2_LIBS], "[$python2_LIBS]",
+ 	    		       [Define the library flag for linking python2])
+		      ])
+AM_COND_IF([HAVE_PYTHON3],
+	   [AC_DEFINE([HAVE_PYTHON3], [1],
+		      [Define to enable python3 level tracing support])
+	    AC_DEFINE_UNQUOTED([PYTHON3_LIBS], "[$python3_LIBS]",
+ 	    		       [Define the library flag for linking python2])
+		      ])
+
 if test "$arch" = mips && test "$no_create" != yes; then
 	mkdir -p linux/mips
 	if $srcdir/linux/mips/genstub.sh linux/mips; then
