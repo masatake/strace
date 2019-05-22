@@ -509,7 +509,8 @@ qualify_kvm(const char *const str)
 	if (strcmp(str, "vcpu") == 0) {
 #ifdef HAVE_LINUX_KVM_H
 		if (os_release >= KERNEL_VERSION(4, 16, 0))
-			kvm_run_structure_decoder_init();
+			kvm_run_structure_decoder_init(1);
+
 		else
 			error_msg("-e kvm=vcpu option needs"
 				  " Linux 4.16.0 or higher");

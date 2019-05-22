@@ -1360,7 +1360,7 @@ extern void unwind_tcb_capture(struct tcb *);
 # endif
 
 # ifdef HAVE_LINUX_KVM_H
-extern void kvm_run_structure_decoder_init(void);
+extern void kvm_run_structure_decoder_init(int);
 extern void kvm_vcpu_info_free(struct tcb *);
 # endif
 
