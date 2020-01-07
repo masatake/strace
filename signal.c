@@ -92,14 +92,19 @@ get_sa_handler_str(kernel_ulong_t handler)
 }
 
 static void
-print_sa_handler(kernel_ulong_t handler)
+print_sa_handler(struct tcb *const tcp, kernel_ulong_t handler)
 {
 	const char *sa_handler_str = get_sa_handler_str(handler);
 
 	if (sa_handler_str)
 		print_xlat_ex(handler, sa_handler_str, XLAT_STYLE_DEFAULT);
 	else
+	{
 		printaddr(handler);
+		const char *str = resolve_symbol_name(tcp, handler);
+		if (str)
+			tprintf ("<%s>", str);
+	}
 }
 
 const char *
@@ -327,7 +332,7 @@ decode_old_sigaction(struct tcb *const tcp, const kernel_ulong_t addr)
 		return;
 
 	tprints("{sa_handler=");
-	print_sa_handler(sa.sa_handler__);
+	print_sa_handler(tcp, sa.sa_handler__);
 	tprints(", sa_mask=");
 	tprint_old_sigmask_val("", sa.sa_mask);
 	tprints(", sa_flags=");
@@ -365,7 +370,7 @@ SYS_FUNC(signal)
 	if (entering(tcp)) {
 		printsignal(tcp->u_arg[0]);
 		tprints(", ");
-		print_sa_handler(tcp->u_arg[1]);
+		print_sa_handler(tcp, tcp->u_arg[1]);
 		return 0;
 	} else if (!syserror(tcp)) {
 		tcp->auxstr = get_sa_handler_str(tcp->u_rval);
@@ -537,7 +542,7 @@ decode_new_sigaction(struct tcb *const tcp, const kernel_ulong_t addr)
 		return;
 
 	tprints("{sa_handler=");
-	print_sa_handler(sa.sa_handler__);
+	print_sa_handler(tcp, sa.sa_handler__);
 	tprints(", sa_mask=");
 	/*
 	 * Sigset size is in tcp->u_arg[4] (SPARC)

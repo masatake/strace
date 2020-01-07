@@ -331,6 +331,7 @@ strace_SOURCES =	\
 	string_to_uint.c \
 	string_to_uint.h \
 	swapon.c	\
+	symresolver.c	\
 	syscall.c	\
 	sysctl.c	\
 	sysent.h	\

@@ -1109,6 +1109,8 @@ extern void kvm_run_structure_decoder_init(void);
 extern void kvm_vcpu_info_free(struct tcb *);
 # endif
 
+extern const char * resolve_symbol_name(struct tcb *tcp, kernel_ulong_t handler);
+
 static inline int
 printstrn(struct tcb *tcp, kernel_ulong_t addr, kernel_ulong_t len)
 {
