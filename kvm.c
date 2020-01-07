@@ -412,6 +412,13 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	}
 }
 
+static void
+kvm_run_structure_decode_unknown(struct tcb *const tcp, struct kvm_run *run_struct)
+{
+	PRINT_FIELD_U(" K> ", run_struct->hw, hardware_exit_reason);
+	tprints("\n");
+}
+
 # include "xlat/kvm_exit_io.h"
 static void
 kvm_run_structure_decode_io(struct tcb *const tcp, struct kvm_run *run_struct)
@@ -458,6 +465,9 @@ kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct
 	tprints(",\n");
 
 	switch (vcpu_run_struct->exit_reason) {
+	case KVM_EXIT_UNKNOWN:
+		kvm_run_structure_decode_unknown(tcp, vcpu_run_struct);
+		break;
 	case KVM_EXIT_IO:
 		kvm_run_structure_decode_io(tcp, vcpu_run_struct);
 		break;
