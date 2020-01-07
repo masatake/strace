@@ -35,7 +35,12 @@ update_mapping_generation(struct tcb *tcp, void *unused)
 static void
 init(void)
 {
-	mmap_notify_register_client(update_mapping_generation, NULL);
+	static bool initialized = false;
+
+	if (!initialized) {
+		mmap_notify_register_client(update_mapping_generation, NULL);
+		initialized = true;
+	}
 }
 
 static void *
