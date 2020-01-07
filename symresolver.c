@@ -6,8 +6,10 @@
 
 #include "defs.h"
 
+#if !defined(ENABLE_STACKTRACE) || !defined(USE_LIBDW)
 const char *
 resolve_symbol_name(struct tcb *tcp, kernel_ulong_t handler)
 {
 	return NULL;
 }
+#endif

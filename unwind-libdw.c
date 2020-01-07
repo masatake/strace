@@ -194,3 +194,30 @@ const struct unwind_unwinder_t unwinder = {
 	.tcb_fin = tcb_fin,
 	.tcb_walk = tcb_walk,
 };
+
+const char *
+resolve_symbol_name(struct tcb *tcp, kernel_ulong_t handler)
+{
+	GElf_Sym sym;
+	GElf_Off off = 0;
+
+	unwinder.init();
+
+	if (!tcp->unwind_ctx) {
+		tcp->unwind_ctx = unwinder.tcb_init(tcp);
+		if (!tcp->unwind_ctx)
+			return NULL;
+	}
+
+	flush_cache_maybe(tcp);
+
+	struct ctx *ctx = tcp->unwind_ctx;
+	Dwfl_Module *mod = dwfl_addrmodule(ctx->dwfl, handler);
+	if (mod)
+	{
+		const char *symname = dwfl_module_addrinfo(mod, handler, &off, &sym,
+							   NULL, NULL, NULL);
+		return symname;
+	}
+	return NULL;
+}
