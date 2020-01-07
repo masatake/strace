@@ -518,6 +518,7 @@ kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct
 		kvm_run_structure_decode_ioapic_eoi(tcp, vcpu_run_struct);
 		break;
 	default:
+		tprints(" K> TODO\n");
 		break;
 	}
 }
