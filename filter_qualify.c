@@ -506,14 +506,22 @@ qualify_inject(const char *const str)
 void
 qualify_kvm(const char *const str)
 {
-	if (strcmp(str, "vcpu") == 0) {
+	if (strncmp(str, "vcpu", 4) == 0) {
 #ifdef HAVE_LINUX_KVM_H
-		if (os_release >= KERNEL_VERSION(4, 16, 0))
-			kvm_run_structure_decoder_init(1);
-
-		else
+		if (os_release >= KERNEL_VERSION(4, 16, 0)) {
+			int level;
+			if (str[4] == '\0')
+				level = 1;
+			else if (str[4] == '+' && str[5] == '\0')
+				level = 2;
+			else
+				goto wrong_kvm_qualifier;
+			kvm_run_structure_decoder_init(level);
+		} else {
+		  wrong_kvm_qualifier:
 			error_msg("-e kvm=%s option needs"
 				  " Linux 4.16.0 or higher", str);
+		}
 #else
 		error_msg("-e kvm=vcpu option is not implemented"
 			  " for this architecture");

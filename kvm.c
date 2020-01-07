@@ -29,6 +29,9 @@ struct vcpu_info {
 
 static int dump_kvm_run_structure;
 
+/* Used in level 2 vcpu decoding. */
+static struct kvm_run * last_valid_vcpu_run_struct;
+
 static struct vcpu_info *
 vcpu_find(struct tcb *const tcp, int fd)
 {
@@ -329,6 +332,8 @@ kvm_ioctl_run_attach_auxstr(struct tcb *const tcp,
 	tcp->auxstr = xlookup(kvm_exit_reason, vcpu_run_struct.exit_reason);
 	if (!tcp->auxstr)
 		tcp->auxstr = "KVM_EXIT_???";
+	if (dump_kvm_run_structure > 1)
+		last_valid_vcpu_run_struct = &vcpu_run_struct;
 }
 
 static int
@@ -405,6 +410,48 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	default:
 		return RVAL_DECODED;
 	}
+}
+
+static void
+kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct)
+{
+
+	/* in */
+	PRINT_FIELD_U("<K  ", *vcpu_run_struct, request_interrupt_window);
+	PRINT_FIELD_U(", ", *vcpu_run_struct, immediate_exit);
+	tprints(",\n");
+
+	/* out */
+	PRINT_FIELD_U(" K> ", *vcpu_run_struct, exit_reason);
+	if (tcp->auxstr)
+		tprintf(" (%s)", tcp->auxstr);
+	PRINT_FIELD_U(", ", *vcpu_run_struct, ready_for_interrupt_injection);
+	PRINT_FIELD_U(", ", *vcpu_run_struct, if_flag);
+	PRINT_FIELD_U(", ", *vcpu_run_struct, flags);
+	tprints(",\n");
+
+	/* in, out */
+	PRINT_FIELD_0X("<K> ", *vcpu_run_struct, cr8);
+	PRINT_FIELD_0X(", ", *vcpu_run_struct, apic_base);
+	tprints(",\n");
+
+	switch (vcpu_run_struct->exit_reason) {
+	default:
+		break;
+	}
+}
+
+void
+kvm_run_structure_decode(struct tcb * tcp)
+{
+	if (dump_kvm_run_structure < 2)
+		return;
+	if (!last_valid_vcpu_run_struct)
+		return;
+
+	kvm_run_structure_decode_main (tcp, last_valid_vcpu_run_struct);
+
+	last_valid_vcpu_run_struct = NULL;
 }
 
 void
