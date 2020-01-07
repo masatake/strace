@@ -465,6 +465,13 @@ kvm_run_structure_decode_internal_error(struct tcb *const tcp, struct kvm_run *r
 	tprints("\n");
 }
 
+static void
+kvm_run_structure_decode_ioapic_eoi(struct tcb *const tcp, struct kvm_run *run_struct)
+{
+	PRINT_FIELD_U(" K>", run_struct->eoi, vector);
+	tprints("\n");
+}
+
 void
 kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct)
 {
@@ -506,6 +513,9 @@ kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct
 		break;
 	case KVM_EXIT_INTERNAL_ERROR:
 		kvm_run_structure_decode_internal_error(tcp, vcpu_run_struct);
+		break;
+	case KVM_EXIT_IOAPIC_EOI:
+		kvm_run_structure_decode_ioapic_eoi(tcp, vcpu_run_struct);
 		break;
 	default:
 		break;
