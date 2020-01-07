@@ -415,21 +415,21 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 static void
 kvm_run_structure_decode_unknown(struct tcb *const tcp, struct kvm_run *run_struct)
 {
-	PRINT_FIELD_U(" K> ", run_struct->hw, hardware_exit_reason);
+	PRINT_FIELD_U(" K  ", run_struct->hw, hardware_exit_reason);
 	tprints("\n");
 }
 
 static void
 kvm_run_structure_decode_fail_entry(struct tcb *const tcp, struct kvm_run *run_struct)
 {
-	PRINT_FIELD_U(" K> ", run_struct->fail_entry, hardware_entry_failure_reason);
+	PRINT_FIELD_U(" K  ", run_struct->fail_entry, hardware_entry_failure_reason);
 	tprints("\n");
 }
 
 static void
 kvm_run_structure_decode_exception(struct tcb *const tcp, struct kvm_run *run_struct)
 {
-       PRINT_FIELD_U(" K> ", run_struct->ex, exception);
+       PRINT_FIELD_U(" K  ", run_struct->ex, exception);
        PRINT_FIELD_U(", ", run_struct->ex, error_code);
        tprints("\n");
 }
@@ -438,7 +438,7 @@ kvm_run_structure_decode_exception(struct tcb *const tcp, struct kvm_run *run_st
 static void
 kvm_run_structure_decode_io(struct tcb *const tcp, struct kvm_run *run_struct)
 {
-	PRINT_FIELD_XVAL(" K> ", run_struct->io, direction, kvm_exit_io, "KVM_EXIT_IO_???");
+	PRINT_FIELD_XVAL(" K  ", run_struct->io, direction, kvm_exit_io, "KVM_EXIT_IO_???");
 	PRINT_FIELD_U(", ",  run_struct->io, size);
 	PRINT_FIELD_X(", ",  run_struct->io, port);
 	PRINT_FIELD_U(", ",  run_struct->io, count);
@@ -449,7 +449,7 @@ kvm_run_structure_decode_io(struct tcb *const tcp, struct kvm_run *run_struct)
 static void
 kvm_run_structure_decode_mmio(struct tcb *const tcp, struct kvm_run *run_struct)
 {
-	PRINT_FIELD_0X(" K> ",  run_struct->mmio, phys_addr);
+	PRINT_FIELD_0X(" K  ",  run_struct->mmio, phys_addr);
 	PRINT_FIELD_HEX_ARRAY(", ", run_struct->mmio, data);
 	PRINT_FIELD_U(", ",  run_struct->mmio, len);
 	PRINT_FIELD_U(", ",  run_struct->mmio, is_write);
@@ -459,7 +459,7 @@ kvm_run_structure_decode_mmio(struct tcb *const tcp, struct kvm_run *run_struct)
 static void
 kvm_run_structure_decode_internal_error(struct tcb *const tcp, struct kvm_run *run_struct)
 {
-	PRINT_FIELD_U(" K>", run_struct->internal, suberror);
+	PRINT_FIELD_U(" K  ", run_struct->internal, suberror);
 	PRINT_FIELD_U(", ",  run_struct->internal, ndata);
 	PRINT_FIELD_HEX_ARRAY(", ", run_struct->internal, data);
 	tprints("\n");
@@ -468,7 +468,7 @@ kvm_run_structure_decode_internal_error(struct tcb *const tcp, struct kvm_run *r
 static void
 kvm_run_structure_decode_ioapic_eoi(struct tcb *const tcp, struct kvm_run *run_struct)
 {
-	PRINT_FIELD_U(" K>", run_struct->eoi, vector);
+	PRINT_FIELD_U(" K  ", run_struct->eoi, vector);
 	tprints("\n");
 }
 
@@ -477,12 +477,12 @@ kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct
 {
 
 	/* in */
-	PRINT_FIELD_U("<K  ", *vcpu_run_struct, request_interrupt_window);
+	PRINT_FIELD_U(" K  ", *vcpu_run_struct, request_interrupt_window);
 	PRINT_FIELD_U(", ", *vcpu_run_struct, immediate_exit);
 	tprints(",\n");
 
 	/* out */
-	PRINT_FIELD_U(" K> ", *vcpu_run_struct, exit_reason);
+	PRINT_FIELD_U(" K  ", *vcpu_run_struct, exit_reason);
 	if (tcp->auxstr)
 		tprintf(" (%s)", tcp->auxstr);
 	PRINT_FIELD_U(", ", *vcpu_run_struct, ready_for_interrupt_injection);
@@ -491,7 +491,7 @@ kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct
 	tprints(",\n");
 
 	/* in, out */
-	PRINT_FIELD_0X("<K> ", *vcpu_run_struct, cr8);
+	PRINT_FIELD_0X(" K  ", *vcpu_run_struct, cr8);
 	PRINT_FIELD_0X(", ", *vcpu_run_struct, apic_base);
 	tprints(",\n");
 
@@ -518,7 +518,7 @@ kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct
 		kvm_run_structure_decode_ioapic_eoi(tcp, vcpu_run_struct);
 		break;
 	default:
-		tprints(" K> TODO\n");
+		tprints(" K  TODO\n");
 		break;
 	}
 }
