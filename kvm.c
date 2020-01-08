@@ -742,6 +742,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_SET_GSI_ROUTING:
 		return kvm_ioctl_decode_set_gsi_routing(tcp, arg);
 
+	case KVM_SET_VAPIC_ADDR:
+		return kvm_ioctl_decode_set_vapic_addr(tcp, arg);
+
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_CREATE_IRQCHIP:
 	case KVM_GET_API_VERSION:
