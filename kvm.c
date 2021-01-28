@@ -596,7 +596,9 @@ kvm_ioctl_decode_signal_msi(struct tcb *const tcp, const kernel_ulong_t arg)
 	PRINT_FIELD_X(", ", msi, address_hi);
 	PRINT_FIELD_X(", ", msi, data);
 	PRINT_FIELD_XVAL(", ", msi, flags, kvm_msi, "KVM_MSI_???");
+#if 0
 	PRINT_FIELD_U(", ", msi, devid);
+#endif
 	tprints("}");
 
 	return RVAL_IOCTL_DECODED;
@@ -820,7 +822,9 @@ kvm_run_structure_decode_main(struct tcb * tcp, struct kvm_run * vcpu_run_struct
 
 	/* in */
 	PRINT_FIELD_U(" K  ", *vcpu_run_struct, request_interrupt_window);
+#if 0
 	PRINT_FIELD_U(", ", *vcpu_run_struct, immediate_exit);
+#endif
 	tprints(",\n");
 
 	/* out */

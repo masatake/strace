@@ -629,6 +629,56 @@ printpidfd(pid_t pid_of_fd, int fd, const char *path)
 	return true;
 }
 
+int
+eventfd_get_id(pid_t pid_of_fd, int fd)
+{
+	int proc_pid = 0;
+	translate_pid(NULL, pid_of_fd, PT_TID, &proc_pid);
+	if (!proc_pid)
+		return -1;
+
+	char fdi_path[sizeof("/proc/%u/fdinfo/%u") + 2 * sizeof(int) * 3];
+	xsprintf(fdi_path, "/proc/%u/fdinfo/%u", proc_pid, fd);
+
+	FILE *f = fopen_stream(fdi_path, "r");
+	if (!f)
+		return -1;
+
+	static const char eid_pfx[] = "eventfd-id: ";
+	char *line = NULL;
+	size_t sz = 0;
+	int eid = -1;
+	while (getline(&line, &sz, f) > 0) {
+		const char *pos = STR_STRIP_PREFIX(line, eid_pfx);
+		if (pos == line)
+			continue;
+
+		eid = string_to_uint_ex(pos, NULL, INT_MAX, "\n");
+		break;
+	}
+
+	free(line);
+	fclose(f);
+
+	return eid;
+}
+
+static bool
+printeventfd(pid_t pid_of_fd, int fd, const char *path)
+{
+	static const char eventfd_path[] = "anon_inode:[eventfd]";
+
+	if (strcmp(path, eventfd_path))
+		return false;
+
+	int id = eventfd_get_id(pid_of_fd, fd);
+	if (id <= 0)
+		return false;
+
+	tprintf("eventfd:%d", id);
+	return true;
+}
+
 void
 printfd_pid(struct tcb *tcp, pid_t pid, int fd)
 {
@@ -644,6 +694,9 @@ printfd_pid(struct tcb *tcp, pid_t pid, int fd)
 			goto printed;
 		if (is_number_in_set(DECODE_FD_PIDFD, decode_fd_set) &&
 		    printpidfd(pid, fd, path))
+			goto printed;
+		if (is_number_in_set(DECODE_FD_EVENTFD, decode_fd_set) &&
+		    printeventfd(pid, fd, path))
 			goto printed;
 		print_quoted_string_ex(path, strlen(path),
 			QUOTE_OMIT_LEADING_TRAILING_QUOTES, "<>");
