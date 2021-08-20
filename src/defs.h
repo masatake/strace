@@ -630,6 +630,7 @@ decl_cookie(ipc_subcall_cookie);
 struct fd_priv_data {
 	enum { fd_priv_unset, fd_priv_dev_chr, fd_priv_dev_blk } type;
 	unsigned int major, minor;
+	const char *major_name;	/* name resolved by /proc/devices */
 };
 
 
