@@ -569,6 +569,9 @@ printsocket(struct tcb *tcp, int fd, const char *path)
 static struct dyxlat *chr_devices_table;
 static struct dyxlat *blk_devices_table;
 
+static unsigned long miscdev_major_num;
+static struct dyxlat *miscdev_table;
+
 static bool
 parse_device_line(const char *line, unsigned long *devnum, const char **devname, size_t *devnamelen)
 {
@@ -627,8 +630,11 @@ load_devices_tables(void)
 		unsigned long num;
 		const char *name;
 		size_t len;
-		if (parse_device_line(line, &num, &name, &len))
+		if (parse_device_line(line, &num, &name, &len)) {
 			dyxlat_add_pair(table, num, name, len);
+			if (table == chr_devices_table && strcmp(name, "misc") == 0)
+				miscdev_major_num = num;
+		}
 	}
 
 	free(line);
@@ -647,6 +653,49 @@ get_major_name(strace_stat_t *st)
 					     ? blk_devices_table
 					     : chr_devices_table);
 	return xlookup(xlat, major(st->st_rdev));
+}
+
+static void
+load_miscdev_table(void)
+{
+	miscdev_table = dyxlat_alloc(32, XT_NORMAL);
+
+	FILE *f = fopen_stream("/proc/misc", "r");
+	if (!f)
+		return;
+
+	char *line = NULL;
+	size_t sz = 0;
+	while (getline(&line, &sz, f) > 0) {
+		unsigned long num;
+		const char *name;
+		size_t len;
+		if (parse_device_line(line, &num, &name, &len))
+			dyxlat_add_pair(miscdev_table, num, name, len);
+	}
+}
+
+static const char*
+get_miscdev_name(strace_stat_t *st)
+{
+	if (!blk_devices_table)
+		load_devices_tables();
+	if (!miscdev_major_num)
+		return NULL;
+
+	if (!S_ISCHR(st->st_mode))
+		return NULL;
+
+	if (major(st->st_rdev) != miscdev_major_num)
+		return NULL;
+
+	if (!miscdev_table)
+		load_miscdev_table();
+	if (!miscdev_table)
+		return NULL;
+
+	const struct xlat *xlat = dyxlat_get(miscdev_table);
+	return xlookup(xlat, minor(st->st_rdev));
 }
 
 static bool
@@ -678,6 +727,7 @@ printdev(struct tcb *tcp, int fd, const char *path, struct fd_priv_data **priv_d
 			data->major = major(st.st_rdev);
 			data->minor = minor(st.st_rdev);
 			data->major_name = get_major_name(&st);
+			data->miscdev_name = get_miscdev_name(&st);
 			*priv_data = data;
 		}
 
