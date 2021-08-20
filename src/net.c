@@ -212,7 +212,7 @@ decode_sockname(struct tcb *tcp)
 		tprint_arg_next();
 
 		if (fetch_socklen(tcp, &ulen, tcp->u_arg[1], tcp->u_arg[2])) {
-			set_tcb_priv_ulong(tcp, ulen);
+			set_tcb_priv_ulong(tcp, ulen, decode_sockname);
 			return 0;
 		} else {
 			/* addr */
@@ -226,7 +226,7 @@ decode_sockname(struct tcb *tcp)
 		}
 	}
 
-	ulen = get_tcb_priv_ulong(tcp);
+	ulen = get_tcb_priv_ulong(tcp, decode_sockname);
 
 	if (syserror(tcp) || umove(tcp, tcp->u_arg[2], &rlen) < 0) {
 		/* addr */
@@ -352,6 +352,7 @@ SYS_FUNC(recv)
 SYS_FUNC(recvfrom)
 {
 	int ulen, rlen;
+	define_priv_cookie(cookie);
 
 	if (entering(tcp)) {
 		/* sockfd */
@@ -359,7 +360,7 @@ SYS_FUNC(recvfrom)
 		tprint_arg_next();
 
 		if (fetch_socklen(tcp, &ulen, tcp->u_arg[4], tcp->u_arg[5])) {
-			set_tcb_priv_ulong(tcp, ulen);
+			set_tcb_priv_ulong(tcp, ulen, cookie);
 		}
 	} else {
 		/* buf */
@@ -380,7 +381,7 @@ SYS_FUNC(recvfrom)
 		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
 		tprint_arg_next();
 
-		ulen = get_tcb_priv_ulong(tcp);
+		ulen = get_tcb_priv_ulong(tcp, cookie);
 
 		if (!fetch_socklen(tcp, &rlen, tcp->u_arg[4], tcp->u_arg[5])) {
 			/* src_addr */
@@ -863,6 +864,7 @@ print_getsockopt(struct tcb *const tcp, const unsigned int level,
 SYS_FUNC(getsockopt)
 {
 	int ulen, rlen;
+	define_priv_cookie(cookie);
 
 	if (entering(tcp)) {
 		print_sockopt_fd_level_name(tcp, tcp->u_arg[0],
@@ -871,7 +873,7 @@ SYS_FUNC(getsockopt)
 
 		if (verbose(tcp) && tcp->u_arg[4]
 		    && umove(tcp, tcp->u_arg[4], &ulen) == 0) {
-			set_tcb_priv_ulong(tcp, ulen);
+			set_tcb_priv_ulong(tcp, ulen, cookie);
 			return 0;
 		} else {
 			/* optval */
@@ -883,7 +885,7 @@ SYS_FUNC(getsockopt)
 			return RVAL_DECODED;
 		}
 	} else {
-		ulen = get_tcb_priv_ulong(tcp);
+		ulen = get_tcb_priv_ulong(tcp, cookie);
 
 		if (syserror(tcp) || umove(tcp, tcp->u_arg[4], &rlen) < 0) {
 			/* optval */

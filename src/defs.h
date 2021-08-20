@@ -277,8 +277,7 @@ struct tcb {
 	struct staged_output_data *staged_output_data;
 
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
-	void *_priv_data;	/* Private data for syscall decoding functions */
-	void (*_free_priv_data)(void *); /* Callback for freeing priv_data */
+	struct tcb_priv *_priv; /* Private data for syscall decoding functions */
 	const struct_sysent *s_ent; /* sysent[scno] or a stub struct for bad
 				     * scno.  Use tcp_sysent() macro for access.
 				     */
@@ -604,20 +603,29 @@ extern bool is_erestart(struct tcb *);
 extern void temporarily_clear_syserror(struct tcb *);
 extern void restore_cleared_syserror(struct tcb *);
 
-extern void *get_tcb_priv_data(const struct tcb *);
-extern int set_tcb_priv_data(struct tcb *, void *priv_data,
-			     void (*free_priv_data)(void *));
+extern void *get_tcb_priv_data(const struct tcb *, const void *const cookie);
+extern void set_tcb_priv_data(struct tcb *, void *priv_data,
+			      void (*free_priv_data)(void *),
+			      const void *const cookie);
 extern void free_tcb_priv_data(struct tcb *);
 
-static inline unsigned long get_tcb_priv_ulong(const struct tcb *tcp)
+static inline unsigned long get_tcb_priv_ulong(const struct tcb *tcp,
+					       const void *const cookie)
 {
-	return (unsigned long) get_tcb_priv_data(tcp);
+	return (unsigned long) get_tcb_priv_data(tcp, cookie);
 }
 
-static inline int set_tcb_priv_ulong(struct tcb *tcp, unsigned long val)
+static inline void set_tcb_priv_ulong(struct tcb *tcp, unsigned long val,
+				      const void *const cookie)
 {
-	return set_tcb_priv_data(tcp, (void *) val, 0);
+	set_tcb_priv_data(tcp, (void *) val, 0, cookie);
 }
+
+#define decl_cookie(COOKIE) extern const void *const COOKIE
+#define define_cookie(COOKIE) const void *const COOKIE = &COOKIE
+#define define_priv_cookie(COOKIE) static define_cookie(COOKIE)
+
+decl_cookie(ipc_subcall_cookie);
 
 /**
  * @return 0 on success, -1 on error.

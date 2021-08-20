@@ -320,6 +320,8 @@ decode_socket_subcall(struct tcb *tcp)
 }
 #endif /* SYS_socket_subcall */
 
+define_cookie(ipc_subcall_cookie);
+
 #ifdef SYS_ipc_subcall
 static void
 decode_ipc_subcall(struct tcb *tcp)
@@ -335,7 +337,7 @@ decode_ipc_subcall(struct tcb *tcp)
 		if (current_wordsize == 8)
 			return;
 #  endif
-		set_tcb_priv_ulong(tcp, version);
+		set_tcb_priv_ulong(tcp, version, ipc_subcall_cookie);
 		call &= 0xffff;
 # endif
 	}
@@ -1420,7 +1422,7 @@ get_scno(struct tcb *tcp)
 
 		tcp->s_ent = &s->ent;
 
-		set_tcb_priv_data(tcp, s, free_sysent_buf);
+		set_tcb_priv_data(tcp, s, free_sysent_buf, get_scno);
 
 		debug_msg("pid %d invalid syscall %#" PRI_klx,
 			  tcp->pid, shuffle_scno(tcp->scno));

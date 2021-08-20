@@ -485,9 +485,9 @@ dm_known_ioctl(struct tcb *const tcp, const unsigned int code,
 		return 0;
 	}
 	if (entering(tcp))
-		set_tcb_priv_data(tcp, ioc, free);
+		set_tcb_priv_data(tcp, ioc, free, dm_known_ioctl);
 	else {
-		entering_ioc = get_tcb_priv_data(tcp);
+		entering_ioc = get_tcb_priv_data(tcp, dm_known_ioctl);
 
 		/*
 		 * retrieve_status, __dev_status called only in case of success,

@@ -85,7 +85,7 @@ scsi_ioctl(struct tcb *const tcp, const unsigned int code,
 				return decode_sg_io(tcp, iid, arg);
 			}
 		} else {
-			uint32_t *piid = get_tcb_priv_data(tcp);
+			uint32_t *piid = get_tcb_priv_data(tcp, scsi_ioctl);
 			if (piid)
 				decode_sg_io(tcp, *piid, arg);
 			tprint_struct_end();

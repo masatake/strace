@@ -484,6 +484,7 @@ SYS_FUNC(sendmsg)
 SYS_FUNC(recvmsg)
 {
 	int msg_namelen;
+	static void *cookie = &cookie;
 
 	if (entering(tcp)) {
 		/* sockfd */
@@ -491,13 +492,13 @@ SYS_FUNC(recvmsg)
 		tprint_arg_next();
 
 		if (fetch_msghdr_namelen(tcp, tcp->u_arg[1], &msg_namelen)) {
-			set_tcb_priv_ulong(tcp, msg_namelen);
+			set_tcb_priv_ulong(tcp, msg_namelen, cookie);
 			return 0;
 		}
 		/* msg */
 		printaddr(tcp->u_arg[1]);
 	} else {
-		msg_namelen = get_tcb_priv_ulong(tcp);
+		msg_namelen = get_tcb_priv_ulong(tcp, cookie);
 
 		/* msg */
 		if (syserror(tcp)) {

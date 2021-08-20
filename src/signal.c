@@ -764,7 +764,7 @@ do_rt_sigtimedwait(struct tcb *const tcp, const print_obj_by_addr_fn print_ts,
 			PRINT_VAL_U(tcp->u_arg[3]);
 		} else {
 			char *sts = xstrdup(sprint_ts(tcp, tcp->u_arg[2]));
-			set_tcb_priv_data(tcp, sts, free);
+			set_tcb_priv_data(tcp, sts, free, do_rt_sigtimedwait);
 		}
 	} else {
 		if (tcp->u_arg[1] && verbose(tcp)) {
@@ -773,7 +773,7 @@ do_rt_sigtimedwait(struct tcb *const tcp, const print_obj_by_addr_fn print_ts,
 			tprint_arg_next();
 
 			/* timeout */
-			tprints(get_tcb_priv_data(tcp));
+			tprints(get_tcb_priv_data(tcp, do_rt_sigtimedwait));
 			tprint_arg_next();
 
 			/* sigsetsize */

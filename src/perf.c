@@ -86,7 +86,8 @@ fetch_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 	desc->attr = attr;
 	desc->size = size;
 
-	set_tcb_priv_data(tcp, desc, free_pea_desc);
+	set_tcb_priv_data(tcp, desc, free_pea_desc,
+			  fetch_perf_event_attr);
 
 	return 0;
 }
@@ -119,7 +120,7 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 				goto print_perf_event_attr_out; \
 		} while (0)
 
-	desc = get_tcb_priv_data(tcp);
+	desc = get_tcb_priv_data(tcp, fetch_perf_event_attr);
 
 	attr = desc->attr;
 	size = desc->size;

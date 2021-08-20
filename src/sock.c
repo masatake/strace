@@ -173,7 +173,7 @@ decode_ifconf(struct tcb *const tcp, const kernel_ulong_t addr)
 		entering(tcp) ? malloc(sizeof(*ifc)) : alloca(sizeof(*ifc));
 
 	if (exiting(tcp)) {
-		entering_ifc = get_tcb_priv_data(tcp);
+		entering_ifc = get_tcb_priv_data(tcp, decode_ifconf);
 
 		if (!entering_ifc) {
 			error_func_msg("where is my ifconf?");
@@ -211,7 +211,7 @@ decode_ifconf(struct tcb *const tcp, const kernel_ulong_t addr)
 		if (ifc->ifc_buf)
 			print_ifc_len(ifc->ifc_len);
 
-		set_tcb_priv_data(tcp, ifc, free);
+		set_tcb_priv_data(tcp, ifc, free, decode_ifconf);
 
 		return 0;
 	}

@@ -37,6 +37,7 @@ print_f_handle(struct tcb *tcp, kernel_ulong_t addr, unsigned int handle_bytes)
 
 SYS_FUNC(name_to_handle_at)
 {
+	define_priv_cookie(cookie);
 	file_handle_header h;
 	const kernel_ulong_t addr = tcp->u_arg[2];
 
@@ -67,14 +68,14 @@ SYS_FUNC(name_to_handle_at)
 		tprint_struct_begin();
 		PRINT_FIELD_U(h, handle_bytes);
 
-		set_tcb_priv_ulong(tcp, h.handle_bytes);
+		set_tcb_priv_ulong(tcp, h.handle_bytes, cookie);
 
 		return 0;
 	} else {
 		if ((!syserror(tcp) || EOVERFLOW == tcp->u_error)
 		    && !umove(tcp, addr, &h)) {
 
-			if (h.handle_bytes != get_tcb_priv_ulong(tcp)) {
+			if (h.handle_bytes != get_tcb_priv_ulong(tcp, cookie)) {
 				tprint_value_changed();
 				PRINT_VAL_U(h.handle_bytes);
 			}

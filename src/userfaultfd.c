@@ -59,14 +59,16 @@ uffdio_ioctl(struct tcb *const tcp, const unsigned int code,
 			entering_features = malloc(sizeof(*entering_features));
 			if (entering_features) {
 				*entering_features = ua.features;
-				set_tcb_priv_data(tcp, entering_features, free);
+				set_tcb_priv_data(tcp, entering_features, free,
+						  uffdio_ioctl);
 			}
 
 			return 0;
 		}
 
 		if (!syserror(tcp) && !umove(tcp, arg, &ua)) {
-			entering_features = get_tcb_priv_data(tcp);
+			entering_features = get_tcb_priv_data(tcp,
+							      uffdio_ioctl);
 
 			if (!entering_features
 			    || *entering_features != ua.features) {

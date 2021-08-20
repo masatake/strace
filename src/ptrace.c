@@ -177,9 +177,10 @@ decode_getregset(struct tcb *const tcp, const kernel_ulong_t addr,
 	}
 
 	if (entering(tcp)) {
-		set_tcb_priv_ulong(tcp, iov.iov_len);
+		set_tcb_priv_ulong(tcp, iov.iov_len, decode_getregset);
 	} else {
-		const unsigned long old_len = get_tcb_priv_ulong(tcp);
+		const unsigned long old_len = get_tcb_priv_ulong(tcp,
+								 decode_getregset);
 
 		tprint_struct_begin();
 		tprints_field_name("iov_base");
@@ -219,10 +220,10 @@ decode_setregset(struct tcb *const tcp, const kernel_ulong_t addr,
 
 		PRINT_FIELD_U(iov, iov_len);
 
-		set_tcb_priv_ulong(tcp, iov.iov_len);
+		set_tcb_priv_ulong(tcp, iov.iov_len, decode_setregset);
 	} else {
 		if (fetch_struct_iovec(tcp, addr, &iov) &&
-		    get_tcb_priv_ulong(tcp) != iov.iov_len) {
+		    get_tcb_priv_ulong(tcp, decode_setregset) != iov.iov_len) {
 			tprint_value_changed();
 			PRINT_VAL_U(iov.iov_len);
 		}

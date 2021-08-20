@@ -90,7 +90,7 @@ decode_request(struct tcb *const tcp, const kernel_ulong_t arg)
 	if (entering_sg_io) {
 		memcpy(entering_sg_io, &sg_io, sizeof(sg_io));
 		entering_sg_io->interface_id = (unsigned char) 'S';
-		set_tcb_priv_data(tcp, entering_sg_io, free);
+		set_tcb_priv_data(tcp, entering_sg_io, free, scsi_ioctl);
 	}
 
 	return 0;
@@ -99,7 +99,7 @@ decode_request(struct tcb *const tcp, const kernel_ulong_t arg)
 static int
 decode_response(struct tcb *const tcp, const kernel_ulong_t arg)
 {
-	struct_sg_io_hdr *entering_sg_io = get_tcb_priv_data(tcp);
+	struct_sg_io_hdr *entering_sg_io = get_tcb_priv_data(tcp, scsi_ioctl);
 	struct_sg_io_hdr sg_io;
 
 	if (umove(tcp, arg, &sg_io) < 0) {

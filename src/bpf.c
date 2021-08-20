@@ -31,6 +31,8 @@
 #include "xlat/ebpf_regs.h"
 #include "xlat/numa_node.h"
 
+define_priv_cookie(bpf_cookie);
+
 #define DECL_BPF_CMD_DECODER(bpf_cmd_decoder)				\
 int									\
 bpf_cmd_decoder(struct tcb *const tcp,					\
@@ -982,7 +984,7 @@ BEGIN_BPF_CMD_DECODER(BPF_OBJ_GET_INFO_BY_FD)
 	if (entering(tcp)) {
 		saved = xzalloc(sizeof(*saved));
 		saved->info_len = attr.info_len;
-		set_tcb_priv_data(tcp, saved, free);
+		set_tcb_priv_data(tcp, saved, free, bpf_cookie);
 
 		tprint_struct_begin();
 		tprints_field_name("info");
@@ -991,7 +993,7 @@ BEGIN_BPF_CMD_DECODER(BPF_OBJ_GET_INFO_BY_FD)
 		tprint_struct_next();
 		PRINT_FIELD_U(attr, info_len);
 	} else {
-		saved = get_tcb_priv_data(tcp);
+		saved = get_tcb_priv_data(tcp, bpf_cookie);
 
 		if (saved && (saved->info_len != attr.info_len)) {
 			tprint_value_changed();
@@ -1033,7 +1035,7 @@ BEGIN_BPF_CMD_DECODER(BPF_PROG_QUERY)
 		tprint_struct_next();
 		tprints_field_name("prog_ids");
 
-		set_tcb_priv_ulong(tcp, attr.prog_cnt);
+		set_tcb_priv_ulong(tcp, attr.prog_cnt, bpf_cookie);
 
 		return 0;
 	}
@@ -1045,7 +1047,7 @@ BEGIN_BPF_CMD_DECODER(BPF_PROG_QUERY)
 
 	tprint_struct_next();
 	tprints_field_name("prog_cnt");
-	const uint32_t prog_cnt_entering = get_tcb_priv_ulong(tcp);
+	const uint32_t prog_cnt_entering = get_tcb_priv_ulong(tcp, bpf_cookie);
 	if (prog_cnt_entering != attr.prog_cnt) {
 		PRINT_VAL_U(prog_cnt_entering);
 		tprint_value_changed();
@@ -1100,7 +1102,7 @@ END_BPF_CMD_DECODER(RVAL_DECODED | RVAL_FD)
 BEGIN_BPF_CMD_DECODER(BPF_TASK_FD_QUERY)
 {
 	if (entering(tcp)) {
-		set_tcb_priv_ulong(tcp, attr.buf_len);
+		set_tcb_priv_ulong(tcp, attr.buf_len, bpf_cookie);
 
 		tprint_struct_begin();
 		tprints_field_name("task_fd_query");
@@ -1116,7 +1118,7 @@ BEGIN_BPF_CMD_DECODER(BPF_TASK_FD_QUERY)
 		return 0;
 	}
 
-	unsigned int saved_buf_len = get_tcb_priv_ulong(tcp);
+	unsigned int saved_buf_len = get_tcb_priv_ulong(tcp, bpf_cookie);
 
 	if (saved_buf_len != attr.buf_len) {
 		tprint_value_changed();
@@ -1144,7 +1146,7 @@ END_BPF_CMD_DECODER(RVAL_DECODED)
 BEGIN_BPF_CMD_DECODER(BPF_MAP_LOOKUP_BATCH)
 {
 	if (entering(tcp)) {
-		set_tcb_priv_ulong(tcp, attr.count);
+		set_tcb_priv_ulong(tcp, attr.count, bpf_cookie);
 
 		tprint_struct_begin();
 		tprints_field_name("batch");
@@ -1168,7 +1170,7 @@ BEGIN_BPF_CMD_DECODER(BPF_MAP_LOOKUP_BATCH)
 
 		tprint_struct_end();
 	} else {
-		unsigned long count = get_tcb_priv_ulong(tcp);
+		unsigned long count = get_tcb_priv_ulong(tcp, bpf_cookie);
 
 		if (count != attr.count) {
 			tprint_value_changed();
@@ -1190,7 +1192,7 @@ END_BPF_CMD_DECODER(0)
 BEGIN_BPF_CMD_DECODER(BPF_MAP_UPDATE_BATCH)
 {
 	if (entering(tcp)) {
-		set_tcb_priv_ulong(tcp, attr.count);
+		set_tcb_priv_ulong(tcp, attr.count, bpf_cookie);
 
 		tprint_struct_begin();
 		tprints_field_name("batch");
@@ -1210,7 +1212,7 @@ BEGIN_BPF_CMD_DECODER(BPF_MAP_UPDATE_BATCH)
 
 		tprint_struct_end();
 	} else {
-		unsigned long count = get_tcb_priv_ulong(tcp);
+		unsigned long count = get_tcb_priv_ulong(tcp, bpf_cookie);
 
 		if (count != attr.count) {
 			tprint_value_changed();
@@ -1230,7 +1232,7 @@ END_BPF_CMD_DECODER(0)
 BEGIN_BPF_CMD_DECODER(BPF_MAP_DELETE_BATCH)
 {
 	if (entering(tcp)) {
-		set_tcb_priv_ulong(tcp, attr.count);
+		set_tcb_priv_ulong(tcp, attr.count, bpf_cookie);
 
 		tprint_struct_begin();
 		tprints_field_name("batch");
@@ -1248,7 +1250,7 @@ BEGIN_BPF_CMD_DECODER(BPF_MAP_DELETE_BATCH)
 
 		tprint_struct_end();
 	} else {
-		unsigned long count = get_tcb_priv_ulong(tcp);
+		unsigned long count = get_tcb_priv_ulong(tcp, bpf_cookie);
 
 		if (count != attr.count) {
 			tprint_value_changed();

@@ -217,7 +217,7 @@ print_io_uring_probe(struct tcb *tcp, const kernel_ulong_t addr,
 		     const unsigned int nargs)
 {
 	struct io_uring_probe *probe;
-	unsigned long printed = exiting(tcp) ? get_tcb_priv_ulong(tcp) : false;
+	unsigned long printed = exiting(tcp) ? get_tcb_priv_ulong(tcp, print_io_uring_probe) : false;
 
 	if (exiting(tcp) && syserror(tcp)) {
 		if (!printed)
@@ -243,7 +243,7 @@ print_io_uring_probe(struct tcb *tcp, const kernel_ulong_t addr,
 		return RVAL_DECODED;
 	if (entering(tcp) && is_filled((const char *) probe, 0, probe_sz))
 		return 0;
-	set_tcb_priv_ulong(tcp, true);
+	set_tcb_priv_ulong(tcp, true, print_io_uring_probe);
 
 	tprint_struct_begin();
 	PRINT_FIELD_XVAL_U(*probe, last_op, uring_ops, "IORING_OP_???");

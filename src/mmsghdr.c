@@ -76,6 +76,8 @@ struct mmsgvec_data {
 	int namelen[0];
 };
 
+define_priv_cookie(mmsgvec_cookie);
+
 static void
 save_mmsgvec_namelen(struct tcb *const tcp, kernel_ulong_t addr,
 		     unsigned int len, const char *const timeout)
@@ -100,7 +102,7 @@ save_mmsgvec_namelen(struct tcb *const tcp, kernel_ulong_t addr,
 	}
 	data->count = i;
 
-	set_tcb_priv_data(tcp, data, free_mmsgvec_data);
+	set_tcb_priv_data(tcp, data, free_mmsgvec_data, mmsgvec_cookie);
 }
 
 static void
@@ -114,7 +116,8 @@ decode_mmsgvec(struct tcb *const tcp, const kernel_ulong_t addr,
 		.count = IOV_MAX,
 		.use_msg_len = use_msg_len
 	};
-	const struct mmsgvec_data *const data = get_tcb_priv_data(tcp);
+	const struct mmsgvec_data *const data = get_tcb_priv_data(tcp,
+								  mmsgvec_cookie);
 
 	if (data) {
 		if (data->count < c.count)
@@ -231,7 +234,8 @@ do_recvmmsg(struct tcb *const tcp, const print_obj_by_addr_fn print_ts,
 			tprint_arg_next();
 
 			/* timeout on entrance */
-			tprints(*(const char **) get_tcb_priv_data(tcp));
+			tprints(*(const char **) get_tcb_priv_data(tcp,
+								   mmsgvec_cookie));
 		}
 		if (syserror(tcp))
 			return 0;

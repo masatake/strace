@@ -974,7 +974,8 @@ print_v4l2_queryctrl(struct tcb *const tcp, const kernel_ulong_t arg)
 		if (umove_or_printaddr(tcp, arg, &c))
 			return RVAL_IOCTL_DECODED;
 
-		set_tcb_priv_ulong(tcp, c.id);
+		set_tcb_priv_ulong(tcp, c.id,
+				   print_v4l2_queryctrl);
 		tprint_struct_begin();
 		PRINT_FIELD_V4L2_CID(c, id, true);
 
@@ -987,7 +988,8 @@ print_v4l2_queryctrl(struct tcb *const tcp, const kernel_ulong_t arg)
 		return RVAL_IOCTL_DECODED;
 	}
 
-	unsigned long entry_id = get_tcb_priv_ulong(tcp);
+	unsigned long entry_id = get_tcb_priv_ulong(tcp,
+						    print_v4l2_queryctrl);
 
 	if (c.id != entry_id) {
 		tprint_value_changed();
@@ -1035,7 +1037,8 @@ print_v4l2_query_ext_ctrl(struct tcb *const tcp, const kernel_ulong_t arg)
 		if (umove_or_printaddr(tcp, arg, &c))
 			return RVAL_IOCTL_DECODED;
 
-		set_tcb_priv_ulong(tcp, c.id);
+		set_tcb_priv_ulong(tcp, c.id,
+				   print_v4l2_query_ext_ctrl);
 		tprint_struct_begin();
 		PRINT_FIELD_V4L2_CID(c, id, true);
 
@@ -1048,7 +1051,8 @@ print_v4l2_query_ext_ctrl(struct tcb *const tcp, const kernel_ulong_t arg)
 		return RVAL_IOCTL_DECODED;
 	}
 
-	unsigned long entry_id = get_tcb_priv_ulong(tcp);
+	unsigned long entry_id = get_tcb_priv_ulong(tcp,
+						    print_v4l2_query_ext_ctrl);
 
 	if (c.id != entry_id) {
 		tprint_value_changed();

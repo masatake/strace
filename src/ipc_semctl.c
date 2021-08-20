@@ -127,6 +127,7 @@ SYS_FUNC(semctl)
 		    && current_personality != 0
 #endif
 		    ;
+	define_priv_cookie(cookie);
 
 	/* TODO: We don't properly decode old compat ipc calls. */
 	if (cmd & IPC_64)
@@ -164,7 +165,7 @@ SYS_FUNC(semctl)
 		case IPC_INFO:
 		case SEM_INFO:
 			/* decode on exiting */
-			set_tcb_priv_ulong(tcp, addr);
+			set_tcb_priv_ulong(tcp, addr, cookie);
 			break;
 
 		default:
@@ -176,7 +177,7 @@ SYS_FUNC(semctl)
 			return RVAL_DECODED;
 		}
 	} else {
-		addr = get_tcb_priv_ulong(tcp);
+		addr = get_tcb_priv_ulong(tcp, cookie);
 		switch (cmd) {
 		case IPC_STAT:
 		case SEM_STAT:

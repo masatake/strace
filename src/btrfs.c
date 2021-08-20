@@ -522,6 +522,8 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		   struct tcb *const tcp, const unsigned int code,
 		   const kernel_ulong_t arg)
 {
+	define_priv_cookie(cookie);
+
 	switch (code) {
 	/* Take no arguments; command only. */
 	case BTRFS_IOC_TRANS_START:
@@ -865,7 +867,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		if (entering(tcp)) {
 			/* Use subvolume id of the containing root */
 			if (args.treeid == 0)
-				set_tcb_priv_ulong(tcp, 1);
+				set_tcb_priv_ulong(tcp, 1, cookie);
 
 			tprint_struct_begin();
 			btrfs_print_objectid(args, treeid);
@@ -876,7 +878,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		}
 
 		tprint_struct_begin();
-		if (get_tcb_priv_ulong(tcp)) {
+		if (get_tcb_priv_ulong(tcp, cookie)) {
 			btrfs_print_objectid(args, treeid);
 			tprint_struct_next();
 		}

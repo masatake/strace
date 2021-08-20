@@ -414,7 +414,7 @@ keyctl_pkey_op(struct tcb *const tcp,
 
 		ret = fetch_print_pkey_params(tcp, params_addr, &params, out);
 		if (ret && out)
-			set_tcb_priv_ulong(tcp, params.out_len);
+			set_tcb_priv_ulong(tcp, params.out_len, keyctl_pkey_op);
 
 		tprint_arg_next();
 		printstr(tcp, info);
@@ -435,7 +435,7 @@ keyctl_pkey_op(struct tcb *const tcp,
 
 		return ret && out ? 0 : RVAL_DECODED;
 	} else {
-		unsigned long out_len = get_tcb_priv_ulong(tcp);
+		unsigned long out_len = get_tcb_priv_ulong(tcp, keyctl_pkey_op);
 
 		if (syserror(tcp))
 			printaddr(op2);

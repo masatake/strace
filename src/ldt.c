@@ -25,7 +25,7 @@ print_user_desc(struct tcb *const tcp, const kernel_ulong_t addr,
 		enum user_desc_print_filter filter)
 {
 	struct user_desc desc;
-	unsigned *entry_number = get_tcb_priv_data(tcp);
+	unsigned *entry_number = get_tcb_priv_data(tcp, print_user_desc);
 
 	switch (filter) {
 	case USER_DESC_ENTERING:
@@ -68,7 +68,7 @@ print_user_desc(struct tcb *const tcp, const kernel_ulong_t addr,
 			entry_number = xmalloc(sizeof(*entry_number));
 
 			*entry_number = desc.entry_number;
-			set_tcb_priv_data(tcp, entry_number, free);
+			set_tcb_priv_data(tcp, entry_number, free, print_user_desc);
 		}
 	}
 

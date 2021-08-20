@@ -949,34 +949,61 @@ alloctcb(int pid)
 	error_msg_and_die("bug in alloctcb");
 }
 
+struct tcb_priv {
+	const void *cookie;
+	struct tcb_priv *next;
+	void (*free)(void *); /* Callback for freeing data */
+	void *data;
+};
+
 void *
-get_tcb_priv_data(const struct tcb *tcp)
+get_tcb_priv_data(const struct tcb *tcp, const void *const cookie)
 {
-	return tcp->_priv_data;
+	for (struct tcb_priv *p = tcp->_priv; p; p = p->next) {
+		if (p->cookie == cookie)
+			return p->data;
+	}
+	return NULL;
 }
 
-int
+void
 set_tcb_priv_data(struct tcb *tcp, void *const priv_data,
-		  void (*const free_priv_data)(void *))
+		  void (*const free_priv_data)(void *),
+		  const void *const cookie)
 {
-	if (tcp->_priv_data)
-		return -1;
+	struct tcb_priv *priv = NULL;
 
-	tcp->_free_priv_data = free_priv_data;
-	tcp->_priv_data = priv_data;
+	/* Release the old data for the cookie. */
+	for (struct tcb_priv *p = tcp->_priv; p; p = p->next) {
+		if (p->cookie == cookie) {
+			priv = p;
+			if (priv->free)
+				priv->free(priv->data);
+			break;
+		}
+	}
 
-	return 0;
+	if (!priv) {
+		priv = xmalloc(sizeof (struct tcb_priv));
+		priv->next = tcp->_priv;
+		tcp->_priv = priv;
+		priv->cookie = cookie;
+	}
+
+	priv->free = free_priv_data;
+	priv->data = priv_data;
 }
 
 void
 free_tcb_priv_data(struct tcb *tcp)
 {
-	if (tcp->_priv_data) {
-		if (tcp->_free_priv_data) {
-			tcp->_free_priv_data(tcp->_priv_data);
-			tcp->_free_priv_data = NULL;
-		}
-		tcp->_priv_data = NULL;
+	struct tcb_priv *priv;
+
+	while ((priv = tcp->_priv)) {
+		tcp->_priv = priv->next;
+		if (priv->free)
+			priv->free(priv->data);
+		free(priv);
 	}
 }
 

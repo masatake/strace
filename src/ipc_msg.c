@@ -111,7 +111,7 @@ SYS_FUNC(msgrcv)
 #ifdef SPARC64
 				current_wordsize == 8 ||
 #endif
-				get_tcb_priv_ulong(tcp) != 0;
+				get_tcb_priv_ulong(tcp, ipc_subcall_cookie) != 0;
 			if (direct) {
 				tprint_msgrcv(tcp, tcp->u_arg[3],
 					      tcp->u_arg[1], tcp->u_arg[4]);
