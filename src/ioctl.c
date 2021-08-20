@@ -13,6 +13,8 @@
 #include <linux/ioctl.h>
 #include "xlat/ioctl_dirs.h"
 
+define_priv_cookie(fd_cookie);
+
 #if defined(SPARC) || defined(SPARC64)
 /*
  * While Alpha, MIPS, PA-RISC, and POWER simply define _IOC_SIZEBITS to 13
@@ -420,8 +422,13 @@ SYS_FUNC(ioctl)
 	int ret;
 
 	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
+		struct fd_priv_data *fd_priv_data = NULL;
+
+		printfd_filling_data(tcp, tcp->u_arg[0], &fd_priv_data);
 		tprint_arg_next();
+
+		if (fd_priv_data)
+			set_tcb_priv_data(tcp, fd_priv_data, free, fd_cookie);
 
 		if (xlat_verbosity != XLAT_STYLE_ABBREV)
 			PRINT_VAL_X((unsigned int) tcp->u_arg[1]);

@@ -627,6 +627,12 @@ static inline void set_tcb_priv_ulong(struct tcb *tcp, unsigned long val,
 
 decl_cookie(ipc_subcall_cookie);
 
+struct fd_priv_data {
+	enum { fd_priv_unset, fd_priv_dev_chr, fd_priv_dev_blk } type;
+	unsigned int major, minor;
+};
+
+
 /**
  * @return 0 on success, -1 on error.
  */
@@ -1156,12 +1162,24 @@ extern pid_t pidfd_get_pid(pid_t pid_of_fd, int fd);
  * Print file descriptor fd owned by process with ID pid (from the PID NS
  * of the tracer).
  */
-extern void printfd_pid(struct tcb *tcp, pid_t pid, int fd);
+extern void printfd_pid_filling_data(struct tcb *tcp, pid_t pid, int fd,
+				     struct fd_priv_data **data);
+
+static inline void printfd_pid(struct tcb *tcp, pid_t pid, int fd)
+{
+	printfd_pid_filling_data(tcp, pid, fd, NULL);
+}
+
+static inline void
+printfd_filling_data(struct tcb *tcp, int fd, struct fd_priv_data **data)
+{
+	printfd_pid_filling_data(tcp, tcp->pid, fd, data);
+}
 
 static inline void
 printfd(struct tcb *tcp, int fd)
 {
-	printfd_pid(tcp, tcp->pid, fd);
+	printfd_filling_data(tcp, fd, NULL);
 }
 
 /**

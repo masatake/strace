@@ -567,7 +567,7 @@ printsocket(struct tcb *tcp, int fd, const char *path)
 }
 
 static bool
-printdev(struct tcb *tcp, int fd, const char *path)
+printdev(struct tcb *tcp, int fd, const char *path, struct fd_priv_data **priv_data)
 {
 	strace_stat_t st;
 
@@ -588,6 +588,15 @@ printdev(struct tcb *tcp, int fd, const char *path)
 		tprintf("<%s %u:%u>",
 			S_ISBLK(st.st_mode)? "block" : "char",
 			major(st.st_rdev), minor(st.st_rdev));
+
+		if (priv_data) {
+			struct fd_priv_data *data = xmalloc(sizeof(*data));
+			data->type = S_ISBLK(st.st_mode)? fd_priv_dev_blk: fd_priv_dev_chr;
+			data->major = major(st.st_rdev);
+			data->minor = minor(st.st_rdev);
+			*priv_data = data;
+		}
+
 		return true;
 	}
 
@@ -645,19 +654,26 @@ printpidfd(pid_t pid_of_fd, int fd, const char *path)
 	return true;
 }
 
-void
-printfd_pid(struct tcb *tcp, pid_t pid, int fd)
+static void
+printfd_pid_filling_data_main(struct tcb *tcp, pid_t pid, int fd, struct fd_priv_data **data)
 {
 	char path[PATH_MAX + 1];
-	if (pid > 0 && !number_set_array_is_empty(decode_fd_set, 0)
+	bool should_print = false;
+
+	if (pid > 0
+	    && ((should_print = !number_set_array_is_empty(decode_fd_set, 0)) || data)
 	    && getfdpath_pid(pid, fd, path, sizeof(path)) >= 0) {
-		PRINT_VAL_D(fd);
+		void *tprint_state = NULL;
+
+		if (!should_print)
+			tprint_state = disable_tprint();
+
 		tprints("<");
 		if (is_number_in_set(DECODE_FD_SOCKET, decode_fd_set) &&
 		    printsocket(tcp, fd, path))
 			goto printed;
-		if (is_number_in_set(DECODE_FD_DEV, decode_fd_set) &&
-		    printdev(tcp, fd, path))
+		if ((data || is_number_in_set(DECODE_FD_DEV, decode_fd_set)) &&
+		    printdev(tcp, fd, path, data))
 			goto printed;
 		if (is_number_in_set(DECODE_FD_PIDFD, decode_fd_set) &&
 		    printpidfd(pid, fd, path))
@@ -667,9 +683,18 @@ printfd_pid(struct tcb *tcp, pid_t pid, int fd)
 
 printed:
 		tprints(">");
-	} else {
-		PRINT_VAL_D(fd);
+
+		if (!should_print)
+			enable_tprint(tprint_state);
 	}
+}
+
+void
+printfd_pid_filling_data(struct tcb *tcp, pid_t pid, int fd, struct fd_priv_data **data)
+{
+	PRINT_VAL_D(fd);
+	printfd_pid_filling_data_main(tcp, pid, fd, data);
+
 #ifdef ENABLE_SECONTEXT
 	char *context;
 	if (!selinux_getfdcon(pid, fd, &context)) {
