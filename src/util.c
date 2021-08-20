@@ -647,6 +647,87 @@ printsocket(struct tcb *tcp, int fd, const char *path)
 	return true;
 }
 
+static struct dyxlat *chr_devices_table;
+static struct dyxlat *blk_devices_table;
+
+static bool
+parse_device_line(const char *line, unsigned long *devnum, const char **devname, size_t *devnamelen)
+{
+
+	char *name = NULL;
+	unsigned long num;
+
+	errno = 0;
+	num = strtoul(line, &name, 10);
+
+	if (errno && (name == line || num == 0 || num == ULONG_MAX))
+		return false;
+	if (name == NULL)
+		return false;
+
+	while (*name == ' ')
+		name++;
+
+	size_t len = strlen(name);
+	if (len == 0)
+		return false;
+	if (name[len - 1] == '\n') {
+		name[len - 1] = '\0';
+		len--;
+	}
+
+	*devnum = num;
+	*devname = name;
+	*devnamelen = len;
+
+	return true;
+}
+
+static void
+load_devices_tables(void)
+{
+	chr_devices_table = dyxlat_alloc(64, XT_SORTED);
+	blk_devices_table = dyxlat_alloc(64, XT_SORTED);
+
+	FILE *f = fopen_stream("/proc/devices", "r");
+	if (!f)
+		return;
+
+	struct dyxlat *table = NULL;
+	char *line = NULL;
+	size_t sz = 0;
+	while (getline(&line, &sz, f) > 0) {
+		if (STR_STRIP_PREFIX(line, "Character devices:") != line)
+			table = chr_devices_table;
+		else if (STR_STRIP_PREFIX(line, "Block devices:") != line)
+			table = blk_devices_table;
+
+		if (!table)
+			continue;
+
+		unsigned long num;
+		const char *name;
+		size_t len;
+		if (parse_device_line(line, &num, &name, &len))
+			dyxlat_add_pair(table, num, name, len);
+	}
+
+	free(line);
+	fclose(f);
+}
+
+static const char*
+get_major_name(strace_stat_t *st)
+{
+	if (!blk_devices_table)
+		load_devices_tables();
+
+	const struct xlat *xlat = dyxlat_get(S_ISBLK(st->st_mode)
+					     ? blk_devices_table
+					     : chr_devices_table);
+	return xlookup(xlat, major(st->st_rdev));
+}
+
 struct finfo *
 get_finfo_for_dev(const char *path, struct finfo *finfo)
 {
@@ -677,6 +758,7 @@ get_finfo_for_dev(const char *path, struct finfo *finfo)
 
 	finfo->dev.major = major(st.st_rdev);
 	finfo->dev.minor = minor(st.st_rdev);
+	finfo->dev.major_name = get_major_name(&st);
 
 	return finfo;
 }

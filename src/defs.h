@@ -668,6 +668,7 @@ struct finfo {
 	bool deleted;
 	struct {
 		unsigned int major, minor;
+		const char *major_name;	/* name resolved by /proc/devices */
 	} dev;
 };
 
