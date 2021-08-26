@@ -422,6 +422,8 @@ ioctl_decode(struct tcb *tcp, const struct finfo *finfo)
 		return scsi_ioctl(tcp, code, arg);
 	case '$': /* 0x24 */
 		return perf_ioctl(tcp, code, arg);
+	case ';': /* 0x3b */
+		return vfio_ioctl(tcp, finfo, code, arg);
 	case '=': /* 0x3d */
 		return ptp_ioctl(tcp, code, arg);
 	case '>': /* 0x3e */
