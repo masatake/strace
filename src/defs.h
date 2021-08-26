@@ -636,6 +636,9 @@ struct fd_priv_data {
 				     resolved by /proc/misc */
 };
 
+extern int
+vfio_ioctl_decode_command_number(int code,
+				 struct tcb *tcp, int fd, struct fd_priv_data *fd_data);
 
 /**
  * @return 0 on success, -1 on error.

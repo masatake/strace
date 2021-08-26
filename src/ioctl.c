@@ -242,7 +242,7 @@ hiddev_decode_number(const unsigned int code)
 }
 
 static int
-ioctl_decode_command_number(struct tcb *tcp)
+ioctl_decode_command_number(struct tcb *tcp, int fd, struct fd_priv_data *fd_data)
 {
 	const unsigned int code = tcp->u_arg[1];
 
@@ -288,6 +288,10 @@ ioctl_decode_command_number(struct tcb *tcp)
 			return 1;
 		}
 		return 0;
+	case ';': {
+		return vfio_ioctl_decode_command_number(code,
+							tcp, fd, fd_data);
+	}
 	default:
 		return 0;
 	}
@@ -423,8 +427,9 @@ SYS_FUNC(ioctl)
 
 	if (entering(tcp)) {
 		struct fd_priv_data *fd_priv_data = NULL;
+		int fd = tcp->u_arg[0];
 
-		printfd_filling_data(tcp, tcp->u_arg[0], &fd_priv_data);
+		printfd_filling_data(tcp, fd, &fd_priv_data);
 		tprint_arg_next();
 
 		if (fd_priv_data)
@@ -435,7 +440,8 @@ SYS_FUNC(ioctl)
 		if (xlat_verbosity == XLAT_STYLE_VERBOSE)
 			tprint_comment_begin();
 		if (xlat_verbosity != XLAT_STYLE_RAW) {
-			ret = ioctl_decode_command_number(tcp);
+			struct fd_priv_data *priv = get_tcb_priv_data(tcp, fd_cookie);
+			ret = ioctl_decode_command_number(tcp, fd, priv);
 			if (!(ret & IOCTL_NUMBER_STOP_LOOKUP)) {
 				iop = ioctl_lookup(tcp->u_arg[1]);
 				if (iop) {
