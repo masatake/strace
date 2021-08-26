@@ -717,6 +717,8 @@ extern int
 term_ioctl_decode_command_number(struct tcb *tcp,
 				 const struct finfo *finfo,
 				 unsigned int code);
+
+bool vfio_is_misc_vfio_dev(const struct finfo *finfo);
 extern int
 vfio_ioctl_decode_command_number(struct tcb *tcp,
 				 const struct finfo *finfo,
@@ -1472,6 +1474,12 @@ extern int								\
 name ## _ioctl(struct tcb *, unsigned int request, kernel_ulong_t arg)	\
 /* End of DECL_IOCTL definition. */
 
+# define DECL_IOCTL_WITH_FINFO(name)					\
+extern int								\
+name ## _ioctl(struct tcb *, const struct finfo *finfo,			\
+	       unsigned int request, kernel_ulong_t arg)		\
+/* End of DECL_IOCTL_WITH_FINFO definition. */
+
 DECL_IOCTL(counter);
 DECL_IOCTL(dm);
 DECL_IOCTL(epoll);
@@ -1494,6 +1502,7 @@ DECL_IOCTL(tee);
 DECL_IOCTL(term);
 DECL_IOCTL(ubi);
 DECL_IOCTL(uffdio);
+DECL_IOCTL_WITH_FINFO(vfio);
 DECL_IOCTL(watchdog);
 # undef DECL_IOCTL
 
