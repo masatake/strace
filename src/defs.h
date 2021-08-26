@@ -1322,6 +1322,7 @@ DECL_IOCTL(tee);
 DECL_IOCTL(term);
 DECL_IOCTL(ubi);
 DECL_IOCTL(uffdio);
+DECL_IOCTL(vfio);
 DECL_IOCTL(watchdog);
 # undef DECL_IOCTL
 
