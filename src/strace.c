@@ -703,6 +703,20 @@ tprintf(const char *fmt, ...)
 # define fputs_unlocked fputs
 #endif
 
+void*
+disable_tprint(void)
+{
+	void *r = current_tcp;
+	current_tcp = NULL;
+	return r;
+}
+
+void
+enable_tprint(void * tprint_state)
+{
+	current_tcp = tprint_state;
+}
+
 void
 tprints(const char *str)
 {

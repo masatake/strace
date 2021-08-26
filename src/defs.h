@@ -1565,6 +1565,9 @@ extern void tprints(const char *str);
 extern void tprintf_comment(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 extern void tprints_comment(const char *str);
 
+extern void* disable_tprint(void);
+extern void enable_tprint(void * tprint_state);
+
 /*
  * Staging output for status qualifier.
  */
