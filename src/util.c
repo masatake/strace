@@ -737,6 +737,41 @@ printdev(struct tcb *tcp, int fd, const char *path, struct fd_priv_data **priv_d
 	return false;
 }
 
+char*
+get_fdinfo(pid_t pid_of_fd, int fd, const char *prefix)
+{
+	int proc_pid = 0;
+	translate_pid(NULL, pid_of_fd, PT_TID, &proc_pid);
+	if (!proc_pid)
+		return NULL;
+
+	char fdi_path[sizeof("/proc/%u/fdinfo/%u") + 2 * sizeof(int) * 3];
+	xsprintf(fdi_path, "/proc/%u/fdinfo/%u", proc_pid, fd);
+
+	FILE *f = fopen_stream(fdi_path, "r");
+	if (!f)
+		return NULL;
+
+	char *line = NULL;
+	size_t sz = 0;
+	while (getline(&line, &sz, f) > 0) {
+		size_t len = strlen(prefix);
+		if (strncmp(line, prefix, len))
+			continue;
+		char *val = line + len;
+		len = strlen(val);
+		memmove(line, val, len);
+		line[len] = '\0';
+		if (len > 0 && line[len - 1] == '\n')
+			line[len - 1] = '\0';
+		fclose(f);
+		return line;
+	}
+
+	free(line);
+	return NULL;
+}
+
 pid_t
 pidfd_get_pid(pid_t pid_of_fd, int fd)
 {

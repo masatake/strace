@@ -492,6 +492,7 @@ enum sock_proto {
 };
 extern enum sock_proto get_proto_by_name(const char *);
 extern int get_family_by_proto(enum sock_proto proto);
+extern char* get_fdinfo(pid_t pid_of_fd, int fd, const char *prefix);
 
 typedef enum {
 	CFLAG_NONE = 0,
