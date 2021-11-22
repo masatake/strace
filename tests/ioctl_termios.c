@@ -32,17 +32,6 @@
 # define IBSHIFT 16
 #endif
 
-#if defined(__sparc__)		\
- || defined(__powerpc__)	\
- || defined(__powerpc64__)	\
- || defined(__alpha__)		\
- || defined(__mips__)		\
- || defined(__hppa__)
-# define IOCTL_CLASHED 0
-#else
-# define IOCTL_CLASHED 1
-#endif
-
 #define PRINT_FLAG(val_, f_) \
 	do { \
 		if ((val_ & f_)) { \
@@ -890,21 +879,9 @@ main(void)
 		{
 			{
 				/* XXX */
-				{ TCSETS,
-#if IOCTL_CLASHED
-					"SNDCTL_TMR_START or "
-#endif
-					"TCSETS", true },
-				{ TCSETSW,
-#if IOCTL_CLASHED
-					"SNDCTL_TMR_STOP or "
-#endif
-					"TCSETSW", true },
-				{ TCSETSF,
-#if IOCTL_CLASHED
-					"SNDCTL_TMR_CONTINUE or "
-#endif
-					"TCSETSF", true },
+				{ TCSETS, "TCSETS", true },
+				{ TCSETSW, "TCSETSW", true },
+				{ TCSETSF, "TCSETSF", true },
 
 				{ ARG_STR(TCGETS),  false },
 				{ ARG_STR(TIOCSLCKTRMIOS), true,  true },
