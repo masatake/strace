@@ -434,6 +434,20 @@ ioctl_decode(struct tcb *tcp, struct finfo *finfo)
 	return 0;
 }
 
+/*
+ * If your ioctl decoder needs the extra inforamtion
+ * about a fd for later processing, return true.
+ */
+static bool ioctl_does_expect_finfo(struct tcb *tcp)
+{
+	const unsigned int code = tcp->u_arg[1];
+	switch (_IOC_TYPE(code)) {
+	case 'T':
+		return true;
+	}
+	return false;
+}
+
 SYS_FUNC(ioctl)
 {
 	const struct_ioctlent *iop;
@@ -444,7 +458,8 @@ SYS_FUNC(ioctl)
 		struct finfo *finfo = NULL;
 		char path[PATH_MAX + 1];
 		bool deleted;
-		if (getfdpath_pid(tcp->pid, tcp->u_arg[0], path, sizeof(path), &deleted) >= 0) {
+		if (ioctl_does_expect_finfo(tcp)
+		    && getfdpath_pid(tcp->pid, tcp->u_arg[0], path, sizeof(path), &deleted) >= 0) {
 			finfo = get_finfo_for_dev(path, &finfoa);
 			finfo->deleted = deleted;
 			printfd_with_finfo(tcp, tcp->u_arg[0], finfo);
