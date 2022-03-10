@@ -346,6 +346,7 @@ ioctl_mtd
 ioctl_mtd-success
 ioctl_nbd
 ioctl_nsfs
+ioctl_overwrap
 ioctl_perf
 ioctl_perf-success
 ioctl_ptp
