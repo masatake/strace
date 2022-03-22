@@ -106,6 +106,36 @@ xlookup(const struct xlat *x, const uint64_t val)
 	return NULL;
 }
 
+extern uint64_t
+xrlookup(const struct xlat *x, const char *str, uint64_t unknown_val)
+{
+	size_t idx = 0;
+
+	if (!x || !x->data || !str)
+		return unknown_val;
+
+	switch (x->type) {
+	case XT_NORMAL:
+	case XT_SORTED:
+		for (; idx < x->size; idx++)
+			if (strcmp(x->data[idx].str, str) == 0)
+				return x->data[idx].val;
+		break;
+	case XT_INDEXED:
+		for (; idx < x->size; idx++) {
+			if (!x->data[idx].str)
+				continue; /* a hole in index */
+			else if (strcmp(x->data[idx].str, str) == 0)
+				return x->data[idx].val;
+		}
+		break;
+	default:
+		error_func_msg("Invalid xlat type: %#x", x->type);
+	};
+
+	return unknown_val;
+}
+
 static const char *
 xlat_search_eq_or_less(const struct xlat *xlat, uint64_t *val)
 {
