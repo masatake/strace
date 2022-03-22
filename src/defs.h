@@ -325,6 +325,8 @@ struct tcb {
 
 # define PROC_COMM_LEN 16
 	char comm[PROC_COMM_LEN];
+
+	uint16_t last_genl_family;
 };
 
 /* TCB flags */
