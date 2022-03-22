@@ -123,6 +123,7 @@ decode_nlmsg_type_generic(struct tcb *tcp, const struct xlat *const xlat,
 			  const uint16_t type,
 			  const char *const dflt)
 {
+	tcp->last_genl_family = type;
 	printxval(genl_families_xlat(tcp), type, dflt);
 }
 
@@ -638,6 +639,7 @@ decode_nlmsghdr_with_payload(struct tcb *const tcp,
 	if (nlmsg_len > NLMSG_HDRLEN)
 		tprint_array_begin();
 
+	tcp->last_genl_family = 0;
 	print_nlmsghdr(tcp, fd, family, nlmsghdr);
 
 	if (nlmsg_len > NLMSG_HDRLEN) {
