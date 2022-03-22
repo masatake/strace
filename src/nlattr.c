@@ -97,7 +97,8 @@ decode_nlattr_with_data(struct tcb *const tcp,
 				tcp, addr + NLA_HDRLEN,
 				nla_len - NLA_HDRLEN,
 				size ? opaque_data
-				     : (const void *) (uintptr_t) nla->nla_type)
+				     : opaque_data ? opaque_data
+						   : (const void *) (uintptr_t) nla->nla_type)
 		    )
 			printstr_ex(tcp, addr + NLA_HDRLEN,
 				    nla_len - NLA_HDRLEN, QUOTE_FORCE_HEX);
@@ -117,13 +118,6 @@ decode_nlattr(struct tcb *const tcp,
 {
 	struct nlattr nla;
 	bool is_array = false;
-
-	if (decoders && !size && opaque_data)
-		error_func_msg("[xlat %p, dflt \"%s\", decoders %p] "
-			       "size is zero (going to pass nla_type as "
-			       "decoder argument), but opaque data (%p) is not "
-			       "- will be ignored",
-			       table, dflt, decoders, opaque_data);
 
 	for (unsigned int elt = 0;
 	     fetch_nlattr(tcp, &nla, addr, len, is_array);
