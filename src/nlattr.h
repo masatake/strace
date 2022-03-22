@@ -38,7 +38,7 @@ typedef bool (*nla_decoder_t)(struct tcb *, kernel_ulong_t addr,
 /**
  * The case of non-NULL decoders and zero size is handled in a special way:
  * the zeroth decoder is always called with nla_type being passed as opaque
- * data.
+ * data as fas as opaque_data is NULL.
  */
 extern void
 decode_nlattr(struct tcb *,
