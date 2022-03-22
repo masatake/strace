@@ -426,10 +426,18 @@ decode_nlmsg_flags_xfrm(const uint16_t type)
 	return NULL;
 }
 
+static const struct xlat *
+decode_nlmsg_flags_generic(const uint16_t type)
+{
+	/* type independent, NLM_F_DUMP only. */
+	return netlink_get_flags;
+}
+
 typedef const struct xlat *(*nlmsg_flags_decoder_t)(const uint16_t type);
 
 static const nlmsg_flags_decoder_t nlmsg_flags[] = {
 	[NETLINK_CRYPTO] = decode_nlmsg_flags_crypto,
+	[NETLINK_GENERIC] = decode_nlmsg_flags_generic,
 	[NETLINK_NETFILTER] = decode_nlmsg_flags_netfilter,
 	[NETLINK_ROUTE] = decode_nlmsg_flags_route,
 	[NETLINK_SOCK_DIAG] = decode_nlmsg_flags_sock_diag,
