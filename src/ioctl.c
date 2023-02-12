@@ -346,7 +346,7 @@ f_ioctl(struct tcb *tcp, const unsigned int code, const kernel_ulong_t arg)
  *         and passes all other bits of ioctl_decode return value unchanged.
  */
 static int
-ioctl_decode(struct tcb *tcp)
+ioctl_decode(struct tcb *tcp, struct finfo *finfo)
 {
 	const unsigned int code = tcp->u_arg[1];
 	const kernel_ulong_t arg = tcp->u_arg[2];
@@ -474,9 +474,10 @@ SYS_FUNC(ioctl)
 		if (xlat_verbosity == XLAT_STYLE_VERBOSE)
 			tprint_comment_end();
 
-		ret = ioctl_decode(tcp);
+		ret = ioctl_decode(tcp, finfo);
+		tcp->finfo = finfo;
 	} else {
-		ret = ioctl_decode(tcp) | RVAL_DECODED;
+		ret = ioctl_decode(tcp, tcp->finfo) | RVAL_DECODED;
 	}
 
 	if (ret & RVAL_IOCTL_DECODED) {
