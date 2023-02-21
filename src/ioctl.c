@@ -378,13 +378,25 @@ ioctl_decode(struct tcb *tcp, const struct finfo *finfo)
 		return evdev_ioctl(tcp, code, arg);
 	case 'I':
 		return inotify_ioctl(tcp, code, arg);
-	case 'K':
-		/* FIXME: this is ugly, and wont work forever */
-		if (_IOC_NR(code) >= _IOC_NR(KIOCSOUND)) {
-			return kd_ioctl(tcp, code, arg);
-		} else {
-			return kfd_ioctl(tcp, code, arg);
+	case 'K': {
+		if (finfo->type == FINFO_UNSET) {
+			if (_IOC_NR(code) >= _IOC_NR(KIOCSOUND))
+				return kd_ioctl(tcp, code, arg);
+			else
+				return kfd_ioctl(tcp, code, arg);
 		}
+		if (finfo->type == FINFO_DEV_CHR) {
+			static unsigned int kfd_major;
+			if (kfd_major == finfo->dev.major)
+				return kfd_ioctl(tcp, code, arg);
+			else if (finfo->dev.major_name
+				 && strcmp(finfo->dev.major_name, "kfd") == 0) {
+				kfd_major = finfo->dev.major;
+				return kfd_ioctl(tcp, code, arg);
+			}
+		}
+		return kd_ioctl(tcp, code, arg);
+	}
 	case 'L':
 		return loop_ioctl(tcp, code, arg);
 	case 'M':
@@ -451,7 +463,8 @@ static bool
 ioctl_command_overlaps(unsigned int code)
 {
 	/* see <asm-generic/ioctls.h> and <linux/soundcard.h> */
-	return (0x5401 <= code && code <= 0x5408);
+	return ((0x5401 <= code && code <= 0x5408)
+		|| kfd_ioctl_cmd_in_range(code));
 }
 
 SYS_FUNC(ioctl)
