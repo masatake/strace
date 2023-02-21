@@ -1417,6 +1417,8 @@ extern void qualify_inject(const char *);
 extern void qualify_kvm(const char *);
 extern unsigned int qual_flags(const unsigned int);
 
+bool kfd_ioctl_cmd_in_range(unsigned int code);
+
 # define DECL_IOCTL(name)						\
 extern int								\
 name ## _ioctl(struct tcb *, unsigned int request, kernel_ulong_t arg)	\

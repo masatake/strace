@@ -973,6 +973,13 @@ print_amdkfd_ioc_available_memory(struct tcb *const tcp,
 	return 0;
 }
 
+bool
+kfd_ioctl_cmd_in_range(unsigned int code)
+{
+	return (AMDKFD_IOC_GET_VERSION <= code
+		&& code <= AMDKFD_IOC_AVAILABLE_MEMORY);
+}
+
 int
 kfd_ioctl(struct tcb *const tcp, const unsigned int code,
 	const kernel_ulong_t arg)
