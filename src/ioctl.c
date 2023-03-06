@@ -460,14 +460,15 @@ SYS_FUNC(ioctl)
 	int ret;
 
 	if (entering(tcp)) {
-		struct finfo finfoa;
 		struct finfo *finfo = NULL;
 		char path[PATH_MAX + 1];
 		bool deleted;
+
+		tcp->finfo.type = FINFO_UNSET;
 		if (ioctl_command_overlaps(tcp->u_arg[1]) &&
 		    getfdpath_pid(tcp->pid, tcp->u_arg[0], path, sizeof(path),
 				  &deleted) >= 0) {
-			finfo = get_finfo_for_dev(path, &finfoa);
+			finfo = get_finfo_for_dev(path, &tcp->finfo);
 			finfo->deleted = deleted;
 			printfd_with_finfo(tcp, tcp->u_arg[0], finfo);
 		} else
@@ -501,7 +502,7 @@ SYS_FUNC(ioctl)
 
 		ret = ioctl_decode(tcp, finfo);
 	} else {
-		ret = ioctl_decode(tcp, NULL) | RVAL_DECODED;
+		ret = ioctl_decode(tcp, &tcp->finfo) | RVAL_DECODED;
 	}
 
 	if (ret & RVAL_IOCTL_DECODED) {

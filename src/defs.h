@@ -258,6 +258,20 @@ struct inject_opts {
 
 # define MAX_ERRNO_VALUE			4095
 
+struct finfo {
+	const char *path;
+	enum {
+		FINFO_UNSET,
+		FINFO_DEV_BLK,
+		FINFO_DEV_CHR,
+	} type;
+	bool deleted;
+	struct {
+		unsigned int major, minor;
+		const char *major_name;	/* name resolved by /proc/devices */
+	} dev;
+};
+
 /* Trace Control Block */
 struct tcb {
 	int flags;		/* See below for TCB_ values */
@@ -325,6 +339,8 @@ struct tcb {
 
 # define PROC_COMM_LEN 16
 	char comm[PROC_COMM_LEN];
+
+	struct finfo finfo;
 };
 
 /* TCB flags */
@@ -657,20 +673,6 @@ static inline int set_tcb_priv_ulong(struct tcb *tcp, unsigned long val)
 {
 	return set_tcb_priv_data(tcp, (void *) val, 0);
 }
-
-struct finfo {
-	const char *path;
-	enum {
-		FINFO_UNSET,
-		FINFO_DEV_BLK,
-		FINFO_DEV_CHR,
-	} type;
-	bool deleted;
-	struct {
-		unsigned int major, minor;
-		const char *major_name;	/* name resolved by /proc/devices */
-	} dev;
-};
 
 extern struct finfo *
 get_finfo_for_dev(const char *path, struct finfo *finfo);
