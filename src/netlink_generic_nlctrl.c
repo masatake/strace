@@ -16,7 +16,7 @@
 #include "xlat/genl_nlctrl_ctrl_attr_op_attrs.h"
 #include "xlat/genl_nlctrl_ctrl_ops_flags.h"
 #include "xlat/genl_nlctrl_ctrl_attr_mcast_grp_attrs.h"
-
+#include "xlat/genl_nlctrl_ctrl_attr_policy_attrs.h"
 
 typedef void (*netlink_generic_decoder_nlctrl_t)(struct tcb *const tcp,
 						 uint8_t cmd, uint8_t verison,
@@ -154,6 +154,44 @@ decode_ctrl_attr_mcast_groups(struct tcb *const tcp,
 	return true;
 }
 
+static const nla_decoder_t ctrl_attr_policy_attr_nla_decoders[] = {
+	[CTRL_ATTR_POLICY_DO] = decode_nla_u32,
+	[CTRL_ATTR_POLICY_DUMP] = decode_nla_u32,
+};
+
+static bool
+decode_ctrl_attr_op_policy_nest(struct tcb *const tcp,
+				const kernel_ulong_t addr,
+				const unsigned int len,
+				const void *const opaque_data)
+{
+	decode_nlattr(tcp, addr, len,
+		      genl_nlctrl_ctrl_attr_policy_attrs,
+		      "CTRL_ATTR_POLICY_???",
+		      ARRSZ_PAIR(ctrl_attr_policy_attr_nla_decoders),
+		      NULL);
+	return true;
+}
+
+static bool
+decode_ctrl_attr_op_policy(struct tcb *const tcp,
+			   const kernel_ulong_t addr,
+			   const unsigned int len,
+			   const void *const opaque_data)
+{
+	uint16_t family = *(uint16_t *)opaque_data;
+	const struct netlink_generic_decoder *cmd_decoder =
+		lookup_netlink_generic_decoder(family);
+	nla_decoder_t decoder = decode_ctrl_attr_op_policy_nest;
+
+	decode_nlattr(tcp, addr, len,
+		      cmd_decoder? cmd_decoder->cmd_xlat: NULL,
+		      cmd_decoder? cmd_decoder->cmd_dflt: NULL,
+		      &decoder, 0,
+		      NULL);
+	return true;
+}
+
 static const nla_decoder_t ctrl_attr_nla_decoders[] = {
 	[CTRL_ATTR_FAMILY_ID] = decode_nla_u16_with_capturing_family,
 	[CTRL_ATTR_FAMILY_NAME] = decode_nla_str,
@@ -165,7 +203,7 @@ static const nla_decoder_t ctrl_attr_nla_decoders[] = {
 
 	/* NOT IMPLEMENTED YET */
 	[CTRL_ATTR_POLICY] = NULL,
-	[CTRL_ATTR_OP_POLICY] = NULL,
+	[CTRL_ATTR_OP_POLICY] = decode_ctrl_attr_op_policy,
 	[CTRL_ATTR_OP] = NULL,
 };
 
@@ -185,6 +223,10 @@ static const struct netlink_generic_nlctrl_decoder generic_nlctrl_decoders[] = {
 	{ CTRL_CMD_NEWFAMILY, 2,
 	  decode_netlink_generic_nlctrl_attrs },
 	{ CTRL_CMD_GETFAMILY, 0,
+	  decode_netlink_generic_nlctrl_attrs },
+	{ CTRL_CMD_GETPOLICY, 0,
+	  decode_netlink_generic_nlctrl_attrs },
+	{ CTRL_CMD_GETPOLICY, 2,
 	  decode_netlink_generic_nlctrl_attrs },
 	/* NOT IMPLEMENTED YET
 	   - CTRL_CMD_DELFAMILY

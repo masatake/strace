@@ -69,19 +69,21 @@ decode_netlink_generic(struct tcb *const tcp,
 		PRINT_FIELD_U(msghdr, version);
 		tprint_struct_next();
 		PRINT_FIELD_X(msghdr, reserved);
-		tprint_struct_end();
 
 		const size_t offset = NLMSG_ALIGN(sizeof(msghdr));
 		if (len > offset) {
-			if (decoder->decode_payload)
+			if (decoder->decode_payload) {
+				tprint_struct_next();
 				decoder->decode_payload (tcp, msghdr.cmd, msghdr.version,
 							 addr + offset, len - offset);
+			}
 			else {
 				tprint_array_next();
 				printstr_ex(tcp, addr + offset,
 					    len - offset, QUOTE_FORCE_HEX);
 			}
 		}
+		tprint_struct_end();
 	}
 
 	return true;
