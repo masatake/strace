@@ -254,6 +254,8 @@ ioctl_decode_command_number(struct tcb *tcp, const struct finfo *finfo)
 			return 1;
 		}
 		return 0;
+	case ';':
+		return vfio_ioctl_decode_command_number(tcp, finfo, code);
 	case 'E':
 		return evdev_decode_number(code);
 	case 'H':
@@ -500,7 +502,9 @@ static bool
 ioctl_command_overlaps(unsigned int code)
 {
 	/* see <asm-generic/ioctls.h> and <linux/soundcard.h> */
-	return (0x5401 <= code && code <= 0x5408);
+	return ((0x5401 <= code && code <= 0x5408)
+		/* see <linux/vfio.h> */
+		|| (0x3b6d <= code && code <= 0x3b76));
 }
 
 SYS_FUNC(ioctl)
