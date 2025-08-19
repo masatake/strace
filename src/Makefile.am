@@ -413,6 +413,7 @@ libstrace_a_SOURCES =	\
 	utime.c		\
 	utimes.c	\
 	v4l2.c		\
+	vfio.c		\
 	wait.c		\
 	wait.h		\
 	watchdog_ioctl.c \
