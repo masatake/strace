@@ -717,6 +717,10 @@ extern int
 term_ioctl_decode_command_number(struct tcb *tcp,
 				 const struct finfo *finfo,
 				 unsigned int code);
+extern int
+vfio_ioctl_decode_command_number(struct tcb *tcp,
+				 const struct finfo *finfo,
+				 unsigned int code);
 
 /**
  * @return 0 on success, -1 on error.
