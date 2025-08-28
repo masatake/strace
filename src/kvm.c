@@ -400,6 +400,35 @@ kvm_ioctl_decode_run(struct tcb *const tcp)
 	return r;
 }
 
+static int
+kvm_ioctl_decode_irq_line_status(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
+{
+	struct kvm_irq_level irq_level;
+
+	if (entering(tcp)) {
+		tprints_arg_next_name("argp");
+		if (umove_or_printaddr(tcp, arg, &irq_level))
+			return RVAL_IOCTL_DECODED;
+		tprint_struct_begin();
+		tprint_union_begin();
+		PRINT_FIELD_U(irq_level, irq);
+		set_tcb_priv_long (tcp, (long)irq_level.level);
+		return 0;
+	}
+
+	tprint_struct_next();
+
+	if (umove(tcp, arg, &irq_level) >= 0)
+		PRINT_FIELD_D(irq_level, status);
+
+	tprint_union_end();
+	tprint_struct_next();
+	irq_level.level = (__u32)get_tcb_priv_long(tcp);
+	PRINT_FIELD_D(irq_level, level);
+	tprint_struct_end();
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -441,6 +470,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_RUN:
 		return kvm_ioctl_decode_run(tcp);
+
+	case KVM_IRQ_LINE_STATUS:
+		return kvm_ioctl_decode_irq_line_status(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
