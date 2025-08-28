@@ -684,6 +684,16 @@ static inline int set_tcb_priv_ulong(struct tcb *tcp, unsigned long val)
 	return set_tcb_priv_data(tcp, (void *) val, 0);
 }
 
+static inline long get_tcb_priv_long(const struct tcb *tcp)
+{
+	return (long) get_tcb_priv_data(tcp);
+}
+
+static inline int set_tcb_priv_long(struct tcb *tcp, long val)
+{
+	return set_tcb_priv_data(tcp, (void *) val, 0);
+}
+
 struct finfo {
 	const char *path;
 	enum {
