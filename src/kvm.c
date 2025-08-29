@@ -431,6 +431,31 @@ kvm_ioctl_decode_irq_line_status(struct tcb *const tcp, const unsigned int code,
 	return RVAL_IOCTL_DECODED;
 }
 
+# include "xlat/kvm_msi.h"
+static int
+kvm_ioctl_decode_signal_msi(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_msi msi;
+
+	tprints_arg_next_name("argp");
+	if (umove_or_printaddr(tcp, arg, &msi))
+		return RVAL_IOCTL_DECODED;
+
+	tprint_struct_begin();
+	PRINT_FIELD_X(msi, address_lo);
+	tprint_struct_next();
+	PRINT_FIELD_X(msi, address_hi);
+	tprint_struct_next();
+	PRINT_FIELD_U(msi, data);
+	tprint_struct_next();
+	PRINT_FIELD_XVAL(msi, flags, kvm_msi, "KVM_MSI_???");
+	tprint_struct_next();
+	PRINT_FIELD_U(msi, devid);
+	tprint_struct_end();
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -476,6 +501,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_IRQ_LINE_STATUS:
 		return kvm_ioctl_decode_irq_line_status(tcp, code, arg);
+
+	case KVM_SIGNAL_MSI:
+		return kvm_ioctl_decode_signal_msi(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
