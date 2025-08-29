@@ -1,0 +1,1 @@
+KVM_MSI_VALID_DEVID	(1U << 0)
