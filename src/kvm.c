@@ -456,6 +456,54 @@ kvm_ioctl_decode_signal_msi(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+static bool
+print_kvm_msr_entry(struct tcb *const tcp,
+		    void* elem_buf, size_t elem_size, void* data)
+{
+	const struct kvm_msr_entry *entry = elem_buf;
+	tprint_struct_begin();
+	PRINT_FIELD_X(*entry, index);
+	tprint_struct_next();
+	PRINT_FIELD_X(*entry, data);
+	tprint_struct_end();
+
+	return true;
+}
+
+static int
+kvm_ioctl_decode_msrs(struct tcb *const tcp, const unsigned int code,
+		      const kernel_ulong_t arg)
+{
+	struct kvm_msrs msrs;
+
+	if (code == KVM_GET_MSRS && entering(tcp))
+		return 0;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &msrs)) {
+		tprint_struct_begin();
+		PRINT_FIELD_U(msrs, nmsrs);
+
+		tprint_struct_next();
+		tprints_field_name("entries");
+		if (abbrev(tcp)) {
+			tprint_array_begin();
+			if (msrs.nmsrs)
+				tprint_more_data_follows();
+			tprint_array_end();
+		} else {
+			/* TODO: decode as in arch/x86/include/asm/msr-index.h  */
+			struct kvm_msr_entry entry;
+			print_array(tcp, arg + sizeof(msrs), msrs.nmsrs,
+				    &entry, sizeof(entry), tfetch_mem,
+				    print_kvm_msr_entry, NULL);
+		}
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -503,6 +551,10 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_SIGNAL_MSI:
 		return kvm_ioctl_decode_signal_msi(tcp, arg);
+
+	case KVM_GET_MSRS:
+	case KVM_SET_MSRS:
+		return kvm_ioctl_decode_msrs(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
