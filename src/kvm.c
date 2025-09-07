@@ -525,6 +525,7 @@ kvm_ioctl_decode_coalesced_mmio(struct tcb *const tcp, const unsigned int code,
 }
 
 #include "xlat/kvm_dirty_log_protection.h"
+#include "xlat/kvm_msr_exit_reason.h"
 static int
 kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
 			    const kernel_ulong_t arg)
@@ -542,6 +543,11 @@ kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
 		case KVM_CAP_MANUAL_DIRTY_LOG_PROTECT2:
 			tprint_array_begin();
 			printflags64(kvm_dirty_log_protection, cap.args[0], "KVM_DIRTY_LOG_???");
+			tprint_array_end();
+			break;
+		case KVM_CAP_X86_USER_SPACE_MSR:
+			tprint_array_begin();
+			printflags64(kvm_msr_exit_reason, cap.args[0], "KVM_MSR_EXIT_REASON_???");
 			tprint_array_end();
 			break;
 		case KVM_CAP_MAX_VCPU_ID:
