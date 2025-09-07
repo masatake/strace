@@ -625,6 +625,96 @@ kvm_ioctl_decode_device_attr(struct tcb *const tcp, const unsigned int code,
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_irq_routing_type.h"
+static void
+kvm_ioctl_decode_set_gsi_routing_entry(struct tcb *const tcp, struct kvm_irq_routing_entry *entry)
+{
+	tprint_struct_begin();
+	PRINT_FIELD_U(*entry, gsi);
+	tprint_struct_next();
+	PRINT_FIELD_XVAL(*entry, type, kvm_irq_routing_type, "KVM_IRQ_ROUTING_???");
+	tprint_struct_next();
+	PRINT_FIELD_U(*entry, flags);
+	tprint_struct_next();
+	tprints_field_name("u");
+	tprint_union_begin();
+	switch (entry->type) {
+	case KVM_IRQ_ROUTING_IRQCHIP: {
+		tprints_field_name("irqchip");
+		tprint_struct_begin();
+		PRINT_FIELD_U(entry->u.irqchip, irqchip);
+		tprint_struct_next();
+		PRINT_FIELD_U(entry->u.irqchip, pin);
+		tprint_struct_end();
+		break;
+	}
+	case KVM_IRQ_ROUTING_MSI: {
+		tprints_field_name("msi");
+		tprint_struct_begin();
+		PRINT_FIELD_X(entry->u.msi, address_lo);
+		tprint_struct_next();
+		PRINT_FIELD_X(entry->u.msi, address_hi);
+		tprint_struct_next();
+		PRINT_FIELD_U(entry->u.msi, data);
+		tprint_struct_next();
+		PRINT_FIELD_U(entry->u.msi, devid);
+		tprint_struct_end();
+		break;
+	}
+	case KVM_IRQ_ROUTING_S390_ADAPTER:
+		/* TODO */
+		tprints_field_name("adapter");
+		tprint_struct_begin();
+		tprint_struct_end();
+		break;
+	case KVM_IRQ_ROUTING_HV_SINT:
+		/* TODO */
+		tprints_field_name("hv_sint");
+		tprint_struct_begin();
+		tprint_struct_end();
+		break;
+	case KVM_IRQ_ROUTING_XEN_EVTCHN:
+		/* TODO */
+		tprints_field_name("xen_evtchn");
+		tprint_struct_begin();
+		tprint_struct_end();
+		break;
+	}
+	tprint_union_end();
+	tprint_struct_end();
+}
+
+static int
+kvm_ioctl_decode_set_gsi_routing(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_irq_routing routing;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &routing)) {
+		tprint_struct_begin();
+		PRINT_FIELD_U(routing, nr);
+		tprint_struct_next();
+		PRINT_FIELD_U(routing, flags);
+		tprint_struct_next();
+		tprints_field_name("entries");
+		for (unsigned int i = 0; i < routing.nr; i++) {
+			struct kvm_irq_routing_entry entry;
+
+			if (i != 0)
+				tprint_array_next();
+
+			if (umove_or_printaddr(tcp, arg + sizeof(routing) + (i * sizeof (entry)),
+					       &entry) < 0)
+				continue;
+			kvm_ioctl_decode_set_gsi_routing_entry(tcp, &entry);
+		}
+		tprint_array_end();
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -687,6 +777,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_GET_DEVICE_ATTR:
 	case KVM_SET_DEVICE_ATTR:
 		return kvm_ioctl_decode_device_attr(tcp, code, arg);
+
+	case KVM_SET_GSI_ROUTING:
+		return kvm_ioctl_decode_set_gsi_routing(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
