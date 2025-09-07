@@ -542,6 +542,13 @@ kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
 			printflags64(kvm_dirty_log_protection, cap.args[0], "KVM_DIRTY_LOG_???");
 			tprint_array_end();
 			break;
+		case KVM_CAP_MAX_VCPU_ID:
+		case KVM_CAP_EXCEPTION_PAYLOAD:
+		case KVM_CAP_X86_TRIPLE_FAULT_EVENT:
+			tprint_array_begin();
+			PRINT_VAL_U(cap.args[0]);
+			tprint_array_end();
+			break;
 		default:
 			PRINT_FIELD_ARRAY(cap, args, tcp, print_xint_array_member);
 			break;
