@@ -522,6 +522,26 @@ kvm_ioctl_decode_coalesced_mmio(struct tcb *const tcp, const unsigned int code,
 	return RVAL_IOCTL_DECODED;
 }
 
+static int
+kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
+			    const kernel_ulong_t arg)
+{
+	struct kvm_enable_cap cap;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &cap)) {
+		tprint_struct_begin();
+		PRINT_FIELD_XVAL(cap, cap, kvm_cap, "KVM_CAP_???");
+		tprint_struct_next();
+		PRINT_FIELD_U(cap, flags);
+		tprint_struct_next();
+		PRINT_FIELD_ARRAY(cap, args, tcp, print_xint_array_member);
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -577,6 +597,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_REGISTER_COALESCED_MMIO:
 	case KVM_UNREGISTER_COALESCED_MMIO:
 		return kvm_ioctl_decode_coalesced_mmio(tcp, code, arg);
+
+	case KVM_ENABLE_CAP:
+		return kvm_ioctl_decode_enable_cap(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
