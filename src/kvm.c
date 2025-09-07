@@ -522,6 +522,7 @@ kvm_ioctl_decode_coalesced_mmio(struct tcb *const tcp, const unsigned int code,
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_dirty_log_protection.h"
 static int
 kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
 			    const kernel_ulong_t arg)
@@ -535,7 +536,16 @@ kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
 		tprint_struct_next();
 		PRINT_FIELD_U(cap, flags);
 		tprint_struct_next();
-		PRINT_FIELD_ARRAY(cap, args, tcp, print_xint_array_member);
+		switch (cap.cap) {
+		case KVM_CAP_MANUAL_DIRTY_LOG_PROTECT2:
+			tprint_array_begin();
+			printflags64(kvm_dirty_log_protection, cap.args[0], "KVM_DIRTY_LOG_???");
+			tprint_array_end();
+			break;
+		default:
+			PRINT_FIELD_ARRAY(cap, args, tcp, print_xint_array_member);
+			break;
+		}
 		tprint_struct_end();
 	}
 
