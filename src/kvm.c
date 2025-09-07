@@ -502,6 +502,26 @@ kvm_ioctl_decode_msrs(struct tcb *const tcp, const unsigned int code,
 	return RVAL_IOCTL_DECODED;
 }
 
+static int
+kvm_ioctl_decode_coalesced_mmio(struct tcb *const tcp, const unsigned int code,
+				const kernel_ulong_t arg)
+{
+	struct kvm_coalesced_mmio_zone zone;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &zone)) {
+		tprint_struct_begin();
+		PRINT_FIELD_0X(zone, addr);
+		tprint_struct_next();
+		PRINT_FIELD_U(zone, size);
+		tprint_struct_next();
+		PRINT_FIELD_U(zone, pio);
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -553,6 +573,10 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_GET_MSRS:
 	case KVM_SET_MSRS:
 		return kvm_ioctl_decode_msrs(tcp, code, arg);
+
+	case KVM_REGISTER_COALESCED_MMIO:
+	case KVM_UNREGISTER_COALESCED_MMIO:
+		return kvm_ioctl_decode_coalesced_mmio(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
