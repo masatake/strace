@@ -13,6 +13,7 @@
 
 #ifdef HAVE_LINUX_KVM_H
 # include <linux/kvm.h>
+# include <asm/kvm.h>
 # include "arch_kvm.c"
 # include "xmalloc.h"
 # include "mmap_cache.h"
@@ -525,8 +526,7 @@ kvm_ioctl_decode_coalesced_mmio(struct tcb *const tcp, const unsigned int code,
 #include "xlat/kvm_dirty_log_protection.h"
 #include "xlat/kvm_msr_exit_reason.h"
 static int
-kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
-			    const kernel_ulong_t arg)
+kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const kernel_ulong_t arg)
 {
 	struct kvm_enable_cap cap;
 
@@ -559,6 +559,64 @@ kvm_ioctl_decode_enable_cap(struct tcb *const tcp, const unsigned int code,
 			PRINT_FIELD_ARRAY(cap, args, tcp, print_xint_array_member);
 			break;
 		}
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
+#include "xlat/kvm_device_attr_group_x86_64.h"
+#include "xlat/kvm_vcpu_tsc.h"
+static int
+kvm_ioctl_decode_device_attr(struct tcb *const tcp, const unsigned int code,
+			     const kernel_ulong_t arg)
+{
+	struct kvm_device_attr device_attr;
+
+	if (code == KVM_GET_DEVICE_ATTR && entering(tcp))
+		return 0;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &device_attr)) {
+		tprint_struct_begin();
+		PRINT_FIELD_U(device_attr, flags);
+		tprint_struct_next();
+#if defined X86_64
+		PRINT_FIELD_XVAL(device_attr, group, kvm_device_attr_group_x86_64, "KVM_???");
+#else
+		PRINT_FIELD_U(device_attr, group);
+#endif
+		tprint_struct_next();
+#if defined X86_64
+		switch (device_attr.group) {
+# if defined KVM_VCPU_TSC_CTRL
+		case KVM_VCPU_TSC_CTRL:
+			PRINT_FIELD_XVAL(device_attr, attr, kvm_vcpu_tsc, "KVM_VCPU_TSC_???");
+			break;
+# endif	/* KVM_VCPU_TSC_CTRL */
+		default:
+			PRINT_FIELD_U(device_attr, attr);
+			break;
+		}
+#else
+		PRINT_FIELD_U(device_attr, attr);
+#endif
+		tprint_struct_next();
+#if defined X86_64 && defined KVM_VCPU_TSC_CTRL && defined KVM_VCPU_TSC_OFFSET
+		if (device_attr.group == KVM_VCPU_TSC_CTRL
+		    && device_attr.attr == KVM_VCPU_TSC_OFFSET) {
+			uint64_t offset;
+			tprints_field_name("addr");
+			if (!umove_or_printaddr(tcp, device_attr.addr, &offset)) {
+				tprint_indirect_begin();
+				PRINT_VAL_U(offset);
+				tprint_indirect_end();
+			}
+		} else
+			PRINT_FIELD_0X(device_attr, addr);
+#else
+		PRINT_FIELD_0X(device_attr, addr);
+#endif
 		tprint_struct_end();
 	}
 
@@ -622,7 +680,11 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 		return kvm_ioctl_decode_coalesced_mmio(tcp, code, arg);
 
 	case KVM_ENABLE_CAP:
-		return kvm_ioctl_decode_enable_cap(tcp, code, arg);
+		return kvm_ioctl_decode_enable_cap(tcp, arg);
+
+	case KVM_GET_DEVICE_ATTR:
+	case KVM_SET_DEVICE_ATTR:
+		return kvm_ioctl_decode_device_attr(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
