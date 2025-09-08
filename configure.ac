@@ -553,6 +553,11 @@ AC_CHECK_TYPES(m4_normalize([
 	struct kvm_userspace_memory_region
 ]),,, [#include <linux/kvm.h>])
 
+AC_CHECK_MEMBERS(m4_normalize([
+	kvm_vcpu_events.triple_fault
+]),,, [#include <kvm.h>])
+
+
 AC_CHECK_TYPES(m4_normalize([
 	struct sockaddr_alg_new
 ]),,, [#include <netinet/in.h>
