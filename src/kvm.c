@@ -839,6 +839,21 @@ kvm_ioctl_decode_set_vapic_addr(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+static int
+kvm_ioctl_decode_set_identity_map_addr(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	uint64_t addr;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &addr)) {
+		tprint_indirect_begin();
+		PRINT_VAL_0X(addr);
+		tprint_indirect_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -911,6 +926,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_SET_VAPIC_ADDR:
 		return kvm_ioctl_decode_set_vapic_addr(tcp, arg);
+
+	case KVM_SET_IDENTITY_MAP_ADDR:
+		return kvm_ioctl_decode_set_identity_map_addr(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
