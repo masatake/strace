@@ -826,6 +826,21 @@ kvm_ioctl_decode_set_irqchip(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+static int
+kvm_ioctl_decode_set_vapic_addr(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_vapic_addr vapic_addr;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &vapic_addr)) {
+		tprint_struct_begin();
+		PRINT_FIELD_0X(vapic_addr, vapic_addr);
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -896,6 +911,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_SET_IRQCHIP:
 		return kvm_ioctl_decode_set_irqchip(tcp, arg);
+
+	case KVM_SET_VAPIC_ADDR:
+		return kvm_ioctl_decode_set_vapic_addr(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
