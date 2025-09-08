@@ -935,6 +935,7 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
 	case KVM_CREATE_IRQCHIP:
+	case KVM_SET_TSS_ADDR:
 	default:
 		return RVAL_DECODED;
 	}
