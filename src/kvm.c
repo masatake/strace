@@ -750,6 +750,7 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 		return kvm_ioctl_decode_check_extension(tcp, code, arg);
 
 	case KVM_CREATE_VM:
+	case KVM_GET_STATS_FD:
 		return RVAL_DECODED | RVAL_FD;
 
 	case KVM_RUN:
