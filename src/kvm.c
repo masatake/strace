@@ -856,6 +856,90 @@ kvm_ioctl_decode_set_identity_map_addr(struct tcb *const tcp, const kernel_ulong
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_x86_shadow.h"
+#include "xlat/kvm_vcpuevents.h"
+static int
+kvm_ioctl_decode_vcpu_events(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
+{
+	struct kvm_vcpu_events vcpu_events;
+
+	if (code == KVM_GET_VCPU_EVENTS && entering(tcp))
+		return 0;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &vcpu_events)) {
+		tprint_struct_begin();
+
+		tprints_field_name("exception");
+		tprint_struct_begin();
+		PRINT_FIELD_U(vcpu_events.exception, injected);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.exception, nr);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.exception, has_error_code);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.exception, error_code);
+		tprint_struct_end();
+
+		tprint_struct_next();
+		tprints_field_name("interrupt");
+		tprint_struct_begin();
+		PRINT_FIELD_U(vcpu_events.interrupt, injected);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.interrupt, nr);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.interrupt, soft);
+		tprint_struct_next();
+		PRINT_FIELD_XVAL(vcpu_events.interrupt, shadow, kvm_x86_shadow, NULL);
+		tprint_struct_end();
+
+		tprint_struct_next();
+		tprints_field_name("nmi");
+		tprint_struct_begin();
+		PRINT_FIELD_U(vcpu_events.nmi, injected);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.nmi, pending);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.nmi, masked);
+		tprint_struct_end();
+
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events, sipi_vector);
+
+		tprint_struct_next();
+		PRINT_FIELD_FLAGS(vcpu_events, flags, kvm_vcpuevents, "KVM_VCPUEVENT_???");
+
+		tprint_struct_next();
+		tprints_field_name("smi");
+		tprint_struct_begin();
+		PRINT_FIELD_U(vcpu_events.smi, smm);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.smi, pending);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.smi, smm_inside_nmi);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events.smi, latched_init);
+		tprint_struct_end();
+
+#ifdef HAVE_STRUCT_KVM_VCPU_EVENTS_TRIPLE_FAULT
+		tprint_struct_next();
+		tprints_field_name("triple_fault");
+		tprint_struct_begin();
+		PRINT_FIELD_U(vcpu_events.triple_fault, pending);
+		tprint_struct_end();
+#endif
+
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events, exception_has_payload);
+		tprint_struct_next();
+		PRINT_FIELD_U(vcpu_events, exception_payload);
+
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -920,6 +1004,10 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_GET_DEVICE_ATTR:
 	case KVM_SET_DEVICE_ATTR:
 		return kvm_ioctl_decode_device_attr(tcp, code, arg);
+
+	case KVM_GET_VCPU_EVENTS:
+	case KVM_SET_VCPU_EVENTS:
+		return kvm_ioctl_decode_vcpu_events(tcp, code, arg);
 
 	case KVM_SET_GSI_ROUTING:
 		return kvm_ioctl_decode_set_gsi_routing(tcp, arg);

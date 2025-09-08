@@ -558,6 +558,10 @@ AC_CHECK_MEMBERS(m4_normalize([
 	struct kvm_run.flags
 ]),,, [#include <linux/kvm.h>])
 
+AC_CHECK_MEMBERS(m4_normalize([
+	kvm_vcpu_events.triple_fault
+]),,, [#include <asm/kvm.h>])
+
 AC_CHECK_TYPES(m4_normalize([
 	struct sockaddr_alg_new
 ]),,, [#include <netinet/in.h>
