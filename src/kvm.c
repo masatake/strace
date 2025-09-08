@@ -940,6 +940,25 @@ kvm_ioctl_decode_vcpu_events(struct tcb *const tcp, const unsigned int code, con
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_mp_state.h"
+static int
+kvm_ioctl_decode_mp_state(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
+{
+	struct kvm_mp_state mp_state;
+
+	if (code == KVM_GET_MP_STATE && entering(tcp))
+		return 0;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &mp_state)) {
+		tprint_struct_begin();
+		PRINT_FIELD_XVAL(mp_state, mp_state, kvm_mp_state, "KVM_MP_STATE_???");
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -1007,6 +1026,10 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 	case KVM_GET_VCPU_EVENTS:
 	case KVM_SET_VCPU_EVENTS:
 		return kvm_ioctl_decode_vcpu_events(tcp, code, arg);
+
+	case KVM_GET_MP_STATE:
+	case KVM_SET_MP_STATE:
+		return kvm_ioctl_decode_mp_state(tcp, code, arg);
 
 	case KVM_SET_GSI_ROUTING:
 		return kvm_ioctl_decode_set_gsi_routing(tcp, arg);
