@@ -713,6 +713,117 @@ kvm_ioctl_decode_set_gsi_routing(struct tcb *const tcp, const kernel_ulong_t arg
 	return RVAL_IOCTL_DECODED;
 }
 
+static void
+kvm_ioctl_decode_pic_state(struct tcb *const tcp, struct kvm_pic_state *pic_state)
+{
+	tprint_struct_begin();
+	PRINT_FIELD_U(*pic_state, last_irr);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, irr);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, imr);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, isr);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, priority_add);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, irq_base);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, read_reg_select);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, poll);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, special_mask);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, init_state);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, auto_eoi);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, rotate_on_auto_eoi);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, special_fully_nested_mode);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, init4);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, elcr);
+	tprint_struct_next();
+	PRINT_FIELD_U(*pic_state, elcr_mask);
+	tprint_struct_end();
+}
+
+static void
+kvm_ioctl_decode_ioapic_state(struct tcb *const tcp, struct kvm_ioapic_state *ioapic_state)
+{
+	tprint_struct_begin();
+	PRINT_FIELD_0X(*ioapic_state, base_address);
+	tprint_struct_next();
+	PRINT_FIELD_U(*ioapic_state, ioregsel);
+	tprint_struct_next();
+	PRINT_FIELD_U(*ioapic_state, id);
+	tprint_struct_next();
+	PRINT_FIELD_U(*ioapic_state, irr);
+	tprint_struct_next();
+	tprints_field_name("redirtbl");
+	tprint_array_begin();
+	for (unsigned int i = 0; i < KVM_IOAPIC_NUM_PINS; i++) {
+		tprint_union_begin();
+		tprints_field_name("fields");
+		tprint_struct_begin();
+		PRINT_FIELD_U(ioapic_state->redirtbl[i].fields, vector);
+		tprint_struct_next();
+		PRINT_FIELD_U_CAST(ioapic_state->redirtbl[i].fields, delivery_mode, unsigned);
+		tprint_struct_next();
+		PRINT_FIELD_U_CAST(ioapic_state->redirtbl[i].fields, dest_mode, unsigned);
+		tprint_struct_next();
+		PRINT_FIELD_U_CAST(ioapic_state->redirtbl[i].fields, delivery_status, unsigned);
+		tprint_struct_next();
+		PRINT_FIELD_U_CAST(ioapic_state->redirtbl[i].fields, polarity, unsigned);
+		tprint_struct_next();
+		PRINT_FIELD_U_CAST(ioapic_state->redirtbl[i].fields, remote_irr, unsigned);
+		tprint_struct_next();
+		PRINT_FIELD_U_CAST(ioapic_state->redirtbl[i].fields, trig_mode, unsigned);
+		tprint_struct_next();
+		PRINT_FIELD_U_CAST(ioapic_state->redirtbl[i].fields, mask, unsigned);
+		tprint_struct_next();
+		PRINT_FIELD_U(ioapic_state->redirtbl[i].fields, dest_id);
+		tprint_struct_end();
+		tprint_union_end();
+	}
+	tprint_array_end();
+	tprint_struct_end();
+}
+
+#include "xlat/kvm_irqchip.h"
+static int
+kvm_ioctl_decode_set_irqchip(struct tcb *const tcp, const kernel_ulong_t arg)
+{
+	struct kvm_irqchip irqchip;
+
+	tprints_arg_next_name("argp");
+	if (!umove_or_printaddr(tcp, arg, &irqchip)) {
+		tprint_struct_begin();
+		PRINT_FIELD_XVAL(irqchip, chip_id, kvm_irqchip, "KVM_IRQCHIP_???");
+		tprint_struct_next();
+		tprints_field_name("chip");
+		tprint_union_begin();
+		switch (irqchip.chip_id) {
+		case KVM_IRQCHIP_PIC_MASTER:
+		case KVM_IRQCHIP_PIC_SLAVE:
+			tprints_field_name("pic");
+			kvm_ioctl_decode_pic_state(tcp, &irqchip.chip.pic);
+			break;
+		case KVM_IRQCHIP_IOAPIC:
+			tprints_field_name("iopic");
+			kvm_ioctl_decode_ioapic_state(tcp, &irqchip.chip.ioapic);
+			break;
+		}
+		tprint_union_end();
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -779,6 +890,9 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_SET_GSI_ROUTING:
 		return kvm_ioctl_decode_set_gsi_routing(tcp, arg);
+
+	case KVM_SET_IRQCHIP:
+		return kvm_ioctl_decode_set_irqchip(tcp, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
