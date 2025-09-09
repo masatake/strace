@@ -457,13 +457,14 @@ kvm_ioctl_decode_signal_msi(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+#include "xlat/kvm_msr_index.h"
 static bool
 print_kvm_msr_entry(struct tcb *const tcp,
 		    void* elem_buf, size_t elem_size, void* data)
 {
 	const struct kvm_msr_entry *entry = elem_buf;
 	tprint_struct_begin();
-	PRINT_FIELD_X(*entry, index);
+	PRINT_FIELD_XVAL(*entry, index, kvm_msr_index, "MSR_???");
 	tprint_struct_next();
 	PRINT_FIELD_X(*entry, data);
 	tprint_struct_end();
@@ -493,7 +494,6 @@ kvm_ioctl_decode_msrs(struct tcb *const tcp, const unsigned int code,
 				tprint_more_data_follows();
 			tprint_array_end();
 		} else {
-			/* TODO: decode as in arch/x86/include/asm/msr-index.h  */
 			struct kvm_msr_entry entry;
 			print_array(tcp, arg + sizeof(msrs), msrs.nmsrs,
 				    &entry, sizeof(entry), tfetch_mem,
@@ -959,6 +959,54 @@ kvm_ioctl_decode_mp_state(struct tcb *const tcp, const unsigned int code, const 
 	return RVAL_IOCTL_DECODED;
 }
 
+static bool
+print_msr_index(struct tcb *const tcp,
+		void* elem_buf, size_t elem_size, void* data)
+{
+	uint32_t *index = elem_buf;
+	printxval(kvm_msr_index, *index, "MSR_???");
+	return true;
+}
+
+static int
+kvm_ioctl_decode_msr_index_list(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
+{
+	struct kvm_msr_list msr_list;
+
+	if (entering(tcp)) {
+		tprints_arg_next_name("argp");
+		if (!umove_or_printaddr(tcp, arg, &msr_list)) {
+			tprint_struct_begin();
+			PRINT_FIELD_U(msr_list, nmsrs);
+			tprint_struct_end();
+			tprint_value_changed();
+		}
+		return 0;
+	}
+
+	if (!umove_or_printaddr(tcp, arg, &msr_list)) {
+		tprint_struct_begin();
+		PRINT_FIELD_U(msr_list, nmsrs);
+		tprint_struct_next();
+		tprints_field_name("indices");
+		if (abbrev(tcp)) {
+			tprint_array_begin();
+			if (msr_list.nmsrs)
+				tprint_more_data_follows();
+			tprint_array_end();
+		} else {
+			uint32_t index;
+			print_array(tcp, arg + sizeof(msr_list), msr_list.nmsrs,
+				    &index, sizeof(index), tfetch_mem,
+				    print_msr_index, NULL);
+		}
+
+		tprint_struct_end();
+	}
+
+	return RVAL_IOCTL_DECODED;
+}
+
 int
 kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
@@ -1042,6 +1090,10 @@ kvm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t a
 
 	case KVM_SET_IDENTITY_MAP_ADDR:
 		return kvm_ioctl_decode_set_identity_map_addr(tcp, arg);
+
+	case KVM_GET_MSR_INDEX_LIST:
+	case KVM_GET_MSR_FEATURE_INDEX_LIST:
+		return kvm_ioctl_decode_msr_index_list(tcp, code, arg);
 
 	case KVM_GET_VCPU_MMAP_SIZE:
 	case KVM_GET_API_VERSION:
